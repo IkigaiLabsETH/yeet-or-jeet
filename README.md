@@ -52,6 +52,19 @@ The application primarily integrates with GeckoTerminal's API to provide compreh
   - Liquidity information
   - Price change percentages
 
+### Cielo API Integration (Beta)
+
+The application integrates with Cielo's API for wallet tracking and PnL analysis. Note that Berachain support is in beta and not yet listed in official documentation:
+
+- **Berachain Support** (Beta):
+  - Full support for activity labeling on:
+    - Kodiak Vaults (@KodiakFi)
+    - BEX (native DEX on Berachain)
+    - Infrared POL
+  - PnL tracking and wallet analysis
+  - Transaction history and portfolio management
+  > Note: Berachain support is currently in beta and may not be available in all API tiers
+
 ### DexScreener API (Fallback Data Source)
 
 The application also integrates with DexScreener's API as a fallback when GeckoTerminal data is unavailable:
@@ -159,15 +172,18 @@ Currently supporting:
    ```bash
    pnpm install
    ```
-3. Add your OogaBooga API key to `.env.local`:
+3. Add your API keys to `.env.local`:
    ```
-   NEXT_PUBLIC_OOGABOOGA_API_KEY=your_api_key_here
+   NEXT_PUBLIC_OOGABOOGA_API_KEY=your_oogabooga_api_key_here
+   CIELO_API_KEY=your_cielo_api_key_here  # Required for wallet tracking and PnL features
    ```
 4. Run the development server:
    ```bash
    pnpm dev
    ```
 
-> **Note**: API key is required for access. Please contact @beranoulli or @whoiskevinn on Telegram to obtain one.
+> **Note**: API keys are required for access. 
+> - For OogaBooga API key, please contact @beranoulli or @whoiskevinn on Telegram
+> - For Cielo API key, visit https://cielo.finance
 
 Please note that this application is a conceptual prototype and not a fully operational product. The application provided is for educational purposes only and should not be considered financial advice.
