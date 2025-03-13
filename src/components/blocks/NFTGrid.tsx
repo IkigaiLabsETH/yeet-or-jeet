@@ -5,7 +5,7 @@ import Image from "next/image";
 import { getTrendingCollections, type ReservoirCollection } from "@/lib/reservoir";
 
 export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: string) => void }) {
-  console.log('NFTGrid Environment:', {
+  console.log('NFTGrid Mount:', {
     env: process.env.NODE_ENV,
     apiKeyPresent: !!process.env.NEXT_PUBLIC_RESERVOIR_API_KEY,
     apiKey: process.env.NEXT_PUBLIC_RESERVOIR_API_KEY?.substring(0, 8) + '...'
@@ -15,49 +15,57 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
     queryKey: ["top-nft-collections"],
     queryFn: async () => {
       try {
-        console.log('Initiating NFT collections fetch...');
+        console.log('Starting NFT collections fetch...');
         const reservoirCollections = await getTrendingCollections(12);
         
-        if (!reservoirCollections || reservoirCollections.length === 0) {
-          console.error('No collections returned from API');
-          throw new Error('No collections returned from API');
-        }
-
-        console.log('Successfully received collections:', {
+        console.log('Raw API Response:', {
           count: reservoirCollections.length,
           sample: reservoirCollections.slice(0, 2).map(c => ({
             name: c.name,
             volume: c.volume24h,
-            floor: c.floorAsk?.price?.amount?.native
+            floor: c.floorAsk?.price?.amount?.native,
+            contract: c.primaryContract
           }))
         });
-        
+
         // Transform the data with proper null checks
-        return reservoirCollections.map((collection: ReservoirCollection) => ({
-          address: collection.primaryContract,
-          name: collection.name || 'Unknown Collection',
-          symbol: collection.symbol || 'UNKNOWN',
-          floorPrice: collection.floorAsk?.price?.amount?.native || 0,
-          totalVolume: collection.volume24h || 0,
-          imageUrl: collection.image || null,
-        }));
+        const transformedCollections = reservoirCollections.map((collection: ReservoirCollection) => {
+          const transformed = {
+            address: collection.primaryContract,
+            name: collection.name || 'Unknown Collection',
+            symbol: collection.symbol || 'UNKNOWN',
+            floorPrice: collection.floorAsk?.price?.amount?.native || 0,
+            totalVolume: collection.volume24h || 0,
+            imageUrl: collection.image || null,
+          };
+          console.log('Transformed collection:', transformed);
+          return transformed;
+        });
+
+        console.log('Final transformed collections:', {
+          count: transformedCollections.length,
+          sample: transformedCollections.slice(0, 2)
+        });
+
+        return transformedCollections;
       } catch (err) {
-        console.error("Error in NFT collection fetch:", {
+        console.error("NFTGrid Error:", {
           error: err,
+          message: err instanceof Error ? err.message : 'Unknown error',
           stack: err instanceof Error ? err.stack : undefined
         });
         
-        // Only use mock data in production as absolute last resort
-        if (process.env.NODE_ENV === 'production' && err instanceof Error && err.message.includes('API')) {
-          console.warn("Using mock data as fallback in production");
-          return [{
-            address: "0x1234...",
-            name: "Test Collection",
-            symbol: "TEST",
-            floorPrice: 1.5,
-            totalVolume: 100,
+        // Only use mock data in development for testing
+        if (process.env.NODE_ENV === 'development') {
+          console.warn("Using mock data for development");
+          return Array.from({ length: 6 }).map((_, i) => ({
+            address: `0x${i}234...`,
+            name: `Test Collection ${i + 1}`,
+            symbol: `TEST${i + 1}`,
+            floorPrice: 1.5 + i,
+            totalVolume: 100 + (i * 10),
             imageUrl: null
-          }];
+          }));
         }
         
         throw err;

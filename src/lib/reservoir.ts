@@ -7,11 +7,13 @@ const getHeaders = () => {
     console.error('Reservoir API Key is missing! Please check your environment variables.');
   }
   
-  return {
+  const headers = {
     'accept': '*/*',
     'x-api-key': RESERVOIR_API_KEY || "",
-    'Content-Type': 'application/json',
   };
+  
+  console.log('Request Headers:', headers);
+  return headers;
 };
 
 // Types for Reservoir API responses
@@ -73,44 +75,62 @@ export async function getTrendingCollections(limit = 12): Promise<ReservoirColle
   try {
     // Validate API key
     if (!RESERVOIR_API_KEY) {
+      console.error('API Key Missing:', {
+        key: RESERVOIR_API_KEY,
+        envValue: process.env.NEXT_PUBLIC_RESERVOIR_API_KEY
+      });
       throw new Error('Reservoir API key is not configured');
     }
 
     // Build URL with parameters
     const url = new URL(`${RESERVOIR_API_BASE}/collections/v7`);
-    url.searchParams.append('sortBy', 'volume1h');  // Sort by 1h volume for more active collections
+    url.searchParams.append('sortBy', '1DayVolume');  // Changed to 1DayVolume for better results
     url.searchParams.append('limit', limit.toString());
-    url.searchParams.append('includeTopBid', 'true');  // Include top bid information
-    url.searchParams.append('normalizeRoyalties', 'true');  // Normalize royalties across collections
+    url.searchParams.append('includeTopBid', 'true');
+    url.searchParams.append('sortDirection', 'desc');
     
-    console.log('Fetching trending collections from Reservoir...', {
+    console.log('API Request:', {
       url: url.toString(),
       apiKeyPresent: !!RESERVOIR_API_KEY,
+      apiKeyPrefix: RESERVOIR_API_KEY?.substring(0, 8)
     });
     
     const response = await fetch(url, {
       method: 'GET',
       headers: getHeaders(),
-      mode: 'cors',
-      cache: 'no-cache',
+    });
+
+    console.log('API Response Status:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Reservoir API Error Details:', {
+      console.error('API Error Response:', {
         status: response.status,
         statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
         body: errorText,
-        url: response.url
+        url: url.toString()
       });
       throw new Error(`Reservoir API Error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('API Response Data:', {
+      hasData: !!data,
+      hasCollections: !!data?.collections,
+      collectionCount: data?.collections?.length,
+      sampleCollection: data?.collections?.[0] ? {
+        name: data.collections[0].name,
+        contract: data.collections[0].primaryContract,
+        volume: data.collections[0].volume24h
+      } : null
+    });
     
     if (!data || !Array.isArray(data.collections)) {
-      console.error('Invalid API Response:', data);
+      console.error('Invalid API Response Structure:', data);
       throw new Error('Invalid API response format');
     }
 
@@ -122,21 +142,25 @@ export async function getTrendingCollections(limit = 12): Promise<ReservoirColle
       (collection.volume24h > 0 || collection.floorAsk?.price?.amount?.native > 0)
     );
 
+    console.log('Filtered Collections:', {
+      total: data.collections.length,
+      valid: validCollections.length,
+      first: validCollections[0] ? {
+        name: validCollections[0].name,
+        volume: validCollections[0].volume24h,
+        floor: validCollections[0].floorAsk?.price?.amount?.native
+      } : null
+    });
+
     if (validCollections.length === 0) {
-      console.warn('No valid collections found in API response');
+      console.warn('No valid collections found in response');
       throw new Error('No valid collections found');
     }
 
-    console.log('Successfully fetched collections:', {
-      totalCount: data.collections.length,
-      validCount: validCollections.length,
-      firstCollection: validCollections[0]
-    });
-
     return validCollections;
   } catch (error) {
-    console.error('Error fetching trending collections:', {
-      error,
+    console.error('Trending Collections Error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined
     });
     throw error;
