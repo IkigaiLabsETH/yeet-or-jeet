@@ -35,7 +35,7 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
             name: collection.name || 'Unknown Collection',
             symbol: collection.symbol || 'UNKNOWN',
             floorPrice: collection.floorAsk?.price?.amount?.native || 0,
-            totalVolume: (collection.volume30d ?? (collection.volume24h * 30)) || 0, // Fallback calculation with proper precedence
+            totalVolume: (collection.volume30d ?? (collection.volume24h * 30)) || 0,
             imageUrl: collection.image || null,
           };
           console.log('Transformed collection:', transformed);
@@ -63,7 +63,7 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
             name: `Test Collection ${i + 1}`,
             symbol: `TEST${i + 1}`,
             floorPrice: 1.5 + i,
-            totalVolume: 1000 + (i * 100), // Higher mock volume for 30d
+            totalVolume: 1000 + (i * 100),
             imageUrl: null
           }));
         }
@@ -71,9 +71,9 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
         throw err;
       }
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: 3, // Retry failed requests 3 times
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    staleTime: 1000 * 60 * 5,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   if (isLoading) {
@@ -141,7 +141,7 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
           >
             <div className="flex items-center gap-4">
               {collection.imageUrl ? (
-                <div className="relative size-12">
+                <div className="relative size-12 shrink-0">
                   <Image
                     src={collection.imageUrl}
                     alt={collection.name}
@@ -151,13 +151,13 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
                   />
                 </div>
               ) : (
-                <div className="size-12 rounded-full bg-muted flex items-center justify-center text-2xl font-bold">
+                <div className="size-12 rounded-full bg-muted flex items-center justify-center text-2xl font-bold shrink-0">
                   {collection.symbol[0]}
                 </div>
               )}
-              <div>
-                <h3 className="font-semibold">{collection.name}</h3>
-                <p className="text-sm text-muted-foreground">{collection.symbol}</p>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold truncate">{collection.name}</h3>
+                <p className="text-sm text-muted-foreground truncate">{collection.symbol}</p>
               </div>
             </div>
 
