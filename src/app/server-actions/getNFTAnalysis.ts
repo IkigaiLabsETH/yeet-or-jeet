@@ -1,5 +1,14 @@
+"use server";
+
 import { z } from "zod";
 import { getCollectionDetails, getCollectionTokens, getUserNFTs } from "@/lib/reservoir";
+import {
+  askNebula,
+  askPerplexity,
+  formatQuestionsWithClaude,
+  synthesizeResponses,
+} from "@/lib/helpers/ai";
+import { isAddress } from "thirdweb";
 
 const inputSchema = z.object({
   chainId: z.number(),
@@ -7,93 +16,196 @@ const inputSchema = z.object({
   walletAddress: z.string(),
 });
 
-export async function getNFTAnalysis(input: z.infer<typeof inputSchema>) {
+export type NFTStartingData = {
+  chainId: number;
+  tokenAddress: string;
+  userWalletAddress: string;
+  contractABI?: string;
+  name: string;
+  symbol: string;
+  description: string;
+  floorPrice: number;
+  volume24h: number;
+  totalSupply: number;
+  userBalance: number;
+  recentTrades: Array<{
+    price: number;
+    timestamp: number;
+  }>;
+  holdersCount: number;
+  marketCap: number;
+};
+
+export type NFTAnalysis = {
+  summary: string;
+  sections: Array<object>;
+};
+
+export type NFTAnalysisResponse =
+  | {
+      ok: true;
+      data: NFTAnalysis;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+export async function getNFTAnalysis(input: z.infer<typeof inputSchema>): Promise<NFTAnalysisResponse> {
   try {
     const validatedInput = inputSchema.parse(input);
 
-    console.log('Fetching NFT analysis data...', {
+    // Input validation
+    if (!isAddress(validatedInput.nftAddress)) {
+      return {
+        ok: false,
+        error: "Invalid NFT collection address",
+      };
+    }
+
+    if (!isAddress(validatedInput.walletAddress)) {
+      return {
+        ok: false,
+        error: "Invalid wallet address",
+      };
+    }
+
+    console.log('Gathering NFT collection data...', {
       chainId: validatedInput.chainId,
       nftAddress: validatedInput.nftAddress,
       walletAddress: validatedInput.walletAddress
     });
 
-    // Get collection details
-    const collectionDetails = await getCollectionDetails(validatedInput.nftAddress);
-    console.log('Collection details fetched:', {
-      name: collectionDetails.name,
-      symbol: collectionDetails.symbol,
-      floorPrice: collectionDetails.floorAsk?.price?.amount?.native
-    });
+    // Gather all necessary data in parallel
+    const [collectionDetails, userHoldings, collectionTokens] = await Promise.all([
+      getCollectionDetails(validatedInput.nftAddress),
+      getUserNFTs(validatedInput.walletAddress),
+      getCollectionTokens(validatedInput.nftAddress),
+    ]);
 
-    // Get user's NFT holdings
-    const userHoldings = await getUserNFTs(validatedInput.walletAddress);
     const collectionHoldings = userHoldings.tokens.filter(
       token => token.token.contract.toLowerCase() === validatedInput.nftAddress.toLowerCase()
     );
 
-    console.log('User holdings fetched:', {
-      totalNFTs: userHoldings.tokens.length,
-      collectionNFTs: collectionHoldings.length
-    });
-
-    // Get collection tokens for analysis
-    const collectionTokens = await getCollectionTokens(validatedInput.nftAddress);
-    console.log('Collection tokens fetched:', {
-      count: collectionTokens.tokens.length
-    });
-
-    // Format the response
-    return {
-      ok: true,
-      data: {
-        sections: [
-          {
-            section: "inputs",
-            nftInfo: {
-              address: validatedInput.nftAddress,
-              name: collectionDetails.name || "Unknown Collection",
-              symbol: collectionDetails.symbol || "???",
-              floorPrice: collectionDetails.floorAsk?.price?.amount?.native?.toString() || "0",
-              totalVolume: collectionDetails.volume24h?.toString() || "0",
-            },
-            walletInfo: {
-              address: validatedInput.walletAddress,
-              balance: "0", // ETH balance not needed for now
-              holdings: collectionHoldings.length.toString(),
-            },
-          },
-          {
-            section: "verdict",
-            type: collectionDetails.volume24h > 100 ? "buy" : "hold",
-            title: "Collection Analysis",
-            description: `${collectionDetails.name} shows ${collectionDetails.volume24h > 100 ? "strong" : "moderate"} trading activity with ${collectionDetails.volume24h} ETH 24h volume.`,
-            actions: [],
-          },
-          {
-            section: "details",
-            content: `# NFT Collection Analysis
-
-## Collection Overview
-- Name: ${collectionDetails.name || "Unknown Collection"}
-- Symbol: ${collectionDetails.symbol || "???"}
-- Floor Price: ${collectionDetails.floorAsk?.price?.amount?.native || 0} ETH
-- 24h Volume: ${collectionDetails.volume24h || 0} ETH
-- Total Supply: ${collectionDetails.tokenCount || 0} NFTs
-
-## Your Holdings
-- Number of NFTs: ${collectionHoldings.length}
-${collectionHoldings.map(nft => `- Token ID: ${nft.token.tokenId}`).join('\n')}
-
-## Market Analysis
-- Floor Price: ${collectionDetails.floorAsk?.price?.amount?.native || 0} ETH
-- 24h Volume: ${collectionDetails.volume24h || 0} ETH
-- Total Supply: ${collectionDetails.tokenCount || 0} NFTs
-${collectionDetails.description ? `\n## Collection Description\n${collectionDetails.description}` : ''}
-`,
-          },
-        ],
-      },
+    // Prepare comprehensive data for AI analysis
+    const analysisData: NFTStartingData = {
+      chainId: validatedInput.chainId,
+      tokenAddress: validatedInput.nftAddress,
+      userWalletAddress: validatedInput.walletAddress,
+      name: collectionDetails.name || "Unknown Collection",
+      symbol: collectionDetails.symbol || "???",
+      description: collectionDetails.description || "",
+      floorPrice: collectionDetails.floorAsk?.price?.amount?.native || 0,
+      volume24h: collectionDetails.volume24h || 0,
+      totalSupply: collectionDetails.tokenCount || 0,
+      userBalance: collectionHoldings.length,
+      recentTrades: collectionTokens.tokens
+        .filter(t => t.token.attributes?.some(attr => attr.key === 'lastSalePrice'))
+        .map(t => ({
+          price: Number(t.token.attributes?.find(attr => attr.key === 'lastSalePrice')?.value || 0),
+          timestamp: Date.now(), // Use current timestamp as fallback
+        }))
+        .slice(0, 5),
+      holdersCount: collectionTokens.tokens.length, // Use total tokens as a proxy for holders
+      marketCap: (collectionDetails.floorAsk?.price?.amount?.native || 0) * (collectionDetails.tokenCount || 0),
     };
+
+    const initialQuestion = `
+      You are an NFT market analyst with access to on-chain data. Analyze this NFT collection and the user's wallet:
+      
+      Collection Data:
+      ${JSON.stringify(analysisData)}
+      
+      Wallet Address: ${validatedInput.walletAddress}
+      
+      Please analyze:
+      1. The collection's market performance and trends
+      2. The user's holdings and their rarity/value
+      3. Recent sales activity and price movements
+      4. Collection strength and long-term potential
+      5. Any red flags or concerns (wash trading, suspicious activity)
+      
+      Based on the market data and user's current position (if any):
+      - Should they buy, hold, or sell?
+      - What's the collection's growth potential?
+      - How rare/valuable are their current holdings?
+    `;
+
+    console.log("Formatting questions with Claude");
+    const questions = await formatQuestionsWithClaude(initialQuestion);
+
+    if (!questions) {
+      console.error("Failed to format questions with Claude");
+      return {
+        ok: false,
+        error: "Failed to analyze NFT collection",
+      };
+    }
+
+    console.log("Getting AI analysis...");
+    const [nebulaAnswer, perplexityAnswer] = await Promise.all([
+      askNebula(
+        questions.nebulaQuestion,
+        validatedInput.chainId,
+        validatedInput.nftAddress,
+        validatedInput.walletAddress,
+      ),
+      askPerplexity(questions.perplexityQuestion),
+    ]);
+
+    if (!nebulaAnswer && !perplexityAnswer) {
+      console.error("AI services failed to respond");
+      return {
+        ok: false,
+        error: "Failed to get AI analysis",
+      };
+    }
+
+    console.log("Synthesizing AI responses");
+    const synthesis = await synthesizeResponses(
+      {
+        chainId: analysisData.chainId,
+        tokenAddress: analysisData.tokenAddress,
+        userWalletAddress: analysisData.userWalletAddress,
+      },
+      nebulaAnswer || "",
+      perplexityAnswer || "",
+    );
+
+    if (!synthesis) {
+      console.error("Failed to synthesize responses");
+      return {
+        ok: false,
+        error: "Failed to synthesize AI analysis",
+      };
+    }
+
+    // Clean and parse the synthesis
+    const cleanedSynthesis = synthesis
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
+      .replace(/\\n/g, "\\n")
+      .replace(/\\"/g, '\\"')
+      .trim();
+
+    try {
+      const parsedSynthesis = JSON.parse(cleanedSynthesis) as NFTAnalysis;
+
+      if (!parsedSynthesis.sections || !Array.isArray(parsedSynthesis.sections)) {
+        throw new Error("Invalid synthesis structure");
+      }
+
+      console.log("NFT analysis completed successfully");
+      return {
+        ok: true,
+        data: parsedSynthesis,
+      };
+    } catch (error) {
+      console.error("Failed to parse analysis results:", error);
+      return {
+        ok: false,
+        error: "Failed to parse analysis results",
+      };
+    }
   } catch (error) {
     console.error("Error in getNFTAnalysis:", error);
     return {
