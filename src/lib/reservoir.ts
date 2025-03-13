@@ -30,6 +30,7 @@ export interface ReservoirCollection {
     };
   };
   volume24h: number;
+  volume30d: number;
   tokenCount: number;
   description?: string;
   primaryContract: string;
@@ -132,7 +133,7 @@ export async function getTrendingCollections(limit = 12): Promise<ReservoirColle
 
     // Build URL with parameters
     const url = new URL(`${RESERVOIR_API_BASE}/collections/v7`);
-    url.searchParams.append('sortBy', '1DayVolume');  // Changed to 1DayVolume for better results
+    url.searchParams.append('sortBy', '30DayVolume');  // Changed to 30DayVolume
     url.searchParams.append('limit', limit.toString());
     url.searchParams.append('includeTopBid', 'true');
     url.searchParams.append('sortDirection', 'desc');

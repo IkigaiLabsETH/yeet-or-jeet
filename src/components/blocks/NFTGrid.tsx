@@ -22,7 +22,7 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
           count: reservoirCollections.length,
           sample: reservoirCollections.slice(0, 2).map(c => ({
             name: c.name,
-            volume: c.volume24h,
+            volume: c.volume30d,
             floor: c.floorAsk?.price?.amount?.native,
             contract: c.primaryContract
           }))
@@ -35,7 +35,7 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
             name: collection.name || 'Unknown Collection',
             symbol: collection.symbol || 'UNKNOWN',
             floorPrice: collection.floorAsk?.price?.amount?.native || 0,
-            totalVolume: collection.volume24h || 0,
+            totalVolume: collection.volume30d || 0,
             imageUrl: collection.image || null,
           };
           console.log('Transformed collection:', transformed);
@@ -63,7 +63,7 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
             name: `Test Collection ${i + 1}`,
             symbol: `TEST${i + 1}`,
             floorPrice: 1.5 + i,
-            totalVolume: 100 + (i * 10),
+            totalVolume: 1000 + (i * 100), // Higher mock volume for 30d
             imageUrl: null
           }));
         }
@@ -169,7 +169,7 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
                 </p>
               </div>
               <div>
-                <p className="text-muted-foreground">24h Volume</p>
+                <p className="text-muted-foreground">30d Volume</p>
                 <p className="font-medium">
                   {formatNumber(collection.totalVolume)} ETH
                 </p>
