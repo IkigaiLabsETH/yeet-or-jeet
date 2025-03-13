@@ -137,6 +137,7 @@ export async function getTrendingCollections(limit = 12): Promise<ReservoirColle
     url.searchParams.append('limit', limit.toString());
     url.searchParams.append('includeTopBid', 'true');
     url.searchParams.append('sortDirection', 'desc');
+    url.searchParams.append('includeVolume', 'true'); // Add volume data
     
     console.log('API Request:', {
       url: url.toString(),
@@ -174,7 +175,8 @@ export async function getTrendingCollections(limit = 12): Promise<ReservoirColle
       sampleCollection: data?.collections?.[0] ? {
         name: data.collections[0].name,
         contract: data.collections[0].primaryContract,
-        volume: data.collections[0].volume24h
+        volume24h: data.collections[0].volume24h,
+        volume30d: data.collections[0].volume30d
       } : null
     });
     
@@ -188,7 +190,7 @@ export async function getTrendingCollections(limit = 12): Promise<ReservoirColle
       collection.primaryContract && 
       collection.name &&
       collection.symbol &&
-      (collection.volume24h > 0 || collection.floorAsk?.price?.amount?.native > 0)
+      ((collection.volume30d > 0) || (collection.volume24h > 0) || collection.floorAsk?.price?.amount?.native > 0)
     );
 
     console.log('Filtered Collections:', {
@@ -196,7 +198,8 @@ export async function getTrendingCollections(limit = 12): Promise<ReservoirColle
       valid: validCollections.length,
       first: validCollections[0] ? {
         name: validCollections[0].name,
-        volume: validCollections[0].volume24h,
+        volume24h: validCollections[0].volume24h,
+        volume30d: validCollections[0].volume30d,
         floor: validCollections[0].floorAsk?.price?.amount?.native
       } : null
     });

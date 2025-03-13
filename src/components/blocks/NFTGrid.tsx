@@ -35,7 +35,7 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
             name: collection.name || 'Unknown Collection',
             symbol: collection.symbol || 'UNKNOWN',
             floorPrice: collection.floorAsk?.price?.amount?.native || 0,
-            totalVolume: collection.volume30d || 0,
+            totalVolume: (collection.volume30d ?? (collection.volume24h * 30)) || 0, // Fallback calculation with proper precedence
             imageUrl: collection.image || null,
           };
           console.log('Transformed collection:', transformed);
@@ -168,7 +168,7 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
                   {formatNumber(collection.floorPrice)} ETH
                 </p>
               </div>
-              <div>
+              <div className="text-right">
                 <p className="text-muted-foreground">30d Volume</p>
                 <p className="font-medium">
                   {formatNumber(collection.totalVolume)} ETH
