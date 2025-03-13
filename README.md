@@ -16,12 +16,30 @@ A DeFi trading assistant powered by AI that helps you make informed decisions ab
   - Fallback to curated token list when APIs are unavailable
 
 - **NFT Collection Analysis**: Analyze NFT collections on Ethereum
-  - View collection floor price and volume
-  - Track your NFT holdings
-  - Get AI-powered insights on collection performance
-  - Monitor market sentiment and trading patterns
-  - Analyze holder distribution and rarity data
-  - Get personalized recommendations based on your portfolio
+  - View trending collections sorted by 24h volume
+  - Real-time floor price and volume tracking
+  - Collection metadata and statistics
+  - AI-powered market sentiment analysis
+  - Holder distribution insights
+  - Trading pattern recognition
+  - Rarity analysis and valuation
+  - Personalized recommendations based on:
+    - Floor price trends
+    - Volume analysis
+    - Holder behavior
+    - Market sentiment
+    - Collection rarity
+  - Interactive collection grid with:
+    - Collection logos and names
+    - Floor prices in ETH
+    - 24h trading volume
+    - One-click analysis
+  - Comprehensive analysis reports including:
+    - Market signals (Bullish/Neutral/Bearish)
+    - Detailed market analysis
+    - Actionable recommendations
+    - Risk assessment
+    - Historical performance
 
 - **Real-time Price Data**: Integrated with multiple data sources for accurate and up-to-date token information
   - GeckoTerminal API as primary data source for comprehensive token information
@@ -60,18 +78,26 @@ The application primarily integrates with GeckoTerminal's API to provide compreh
   - Liquidity information
   - Price change percentages
 
-### Cielo API Integration (Beta)
+### Cielo API Integration
 
-The application integrates with Cielo's API for wallet tracking and PnL analysis. Note that Berachain support is in beta and not yet listed in official documentation:
+The application integrates with Cielo's API for both token and NFT analysis:
 
-- **Berachain Support** (Beta):
-  - Full support for activity labeling on:
-    - Kodiak Vaults (@KodiakFi)
-    - BEX (native DEX on Berachain)
-    - Infrared POL
+- **Token Analysis** (Berachain):
+  - Full support for activity labeling
   - PnL tracking and wallet analysis
   - Transaction history and portfolio management
-  > Note: Berachain support is currently in beta and may not be available in all API tiers
+
+- **NFT Analysis** (Ethereum):
+  - Trending collections discovery
+  - Floor price tracking
+  - Volume analysis
+  - Holder distribution
+  - Market sentiment analysis
+  - Collection metadata
+  - Trading patterns
+  - Rarity data
+
+> Note: NFT analysis features require the `NEXT_PUBLIC_CIELO_API_KEY` environment variable to be set
 
 ### DexScreener API (Fallback Data Source)
 

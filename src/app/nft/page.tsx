@@ -11,6 +11,8 @@ import { InputsSection } from "../../components/blocks/InputsSection";
 import { MarkdownRenderer } from "../../components/blocks/markdown-renderer";
 import { ChevronLeft } from "lucide-react";
 import { getNFTAnalysis } from "../server-actions/getNFTAnalysis";
+import { NFTGrid } from "../../components/blocks/NFTGrid";
+import { Card } from "@/components/ui/card";
 
 // Define Ethereum chain for NFTs
 const ethereumChain: Chain = {
@@ -150,9 +152,11 @@ function NFTLandingScreen(props: {
             <p className="text-muted-foreground">Connect your wallet to analyze NFT collections</p>
           </div>
         ) : (
-          <div className="rounded-xl border-2 border-dashed p-8 text-center">
-            <p className="text-muted-foreground">NFT collection grid coming soon...</p>
-          </div>
+          <NFTGrid 
+            onCollectionSelect={(address) => {
+              props.onSubmit({ nftAddress: address });
+            }} 
+          />
         )}
       </div>
     </main>
@@ -299,6 +303,32 @@ function NFTResponseScreen(props: {
 
       {analysisQuery.isSuccess && (
         <>
+          {verdictSection && (
+            <div className="animate-in fade-in slide-in-from-bottom-4">
+              <Card className="p-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      verdictSection.type === "buy" 
+                        ? "bg-green-500/10 text-green-500" 
+                        : verdictSection.type === "sell" 
+                        ? "bg-red-500/10 text-red-500"
+                        : "bg-yellow-500/10 text-yellow-500"
+                    }`}>
+                      {verdictSection.type === "buy" 
+                        ? "Bullish Signal" 
+                        : verdictSection.type === "sell" 
+                        ? "Bearish Signal"
+                        : "Neutral Signal"}
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-semibold">{verdictSection.title}</h3>
+                  <p className="text-muted-foreground">{verdictSection.description}</p>
+                </div>
+              </Card>
+            </div>
+          )}
+
           {detailsSection && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
               <div className="space-y-6">
@@ -324,9 +354,9 @@ function NFTResponseScreen(props: {
               <h3 className="text-xl font-semibold tracking-tight">Recommended Actions</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {verdictSection.actions.map((action: Action) => (
-                  <div 
+                  <Card 
                     key={action.label} 
-                    className="p-6 rounded-xl border bg-card hover:border-active-border transition-all duration-200 hover:shadow-md"
+                    className="p-6 hover:bg-muted/5 transition-colors"
                   >
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -340,7 +370,7 @@ function NFTResponseScreen(props: {
                         <p className="text-sm text-muted-foreground italic">{action.subtext}</p>
                       )}
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </div>
             </div>
