@@ -3,12 +3,15 @@ const RESERVOIR_API_BASE = "https://api.reservoir.tools";
 
 // Common headers for all Reservoir API requests
 const getHeaders = () => {
-  const headers = {
+  if (!RESERVOIR_API_KEY) {
+    console.error('Reservoir API Key is missing! Please check your environment variables.');
+  }
+  
+  return {
     'accept': '*/*',
     'x-api-key': RESERVOIR_API_KEY || "",
+    'Content-Type': 'application/json',
   };
-  console.log('Using Reservoir API Key:', RESERVOIR_API_KEY ? 'Present' : 'Missing');
-  return headers;
 };
 
 // Types for Reservoir API responses
@@ -68,29 +71,74 @@ export interface ReservoirToken {
  */
 export async function getTrendingCollections(limit = 12): Promise<ReservoirCollection[]> {
   try {
-    console.log('Fetching trending collections from Reservoir...');
-    const response = await fetch(
-      `${RESERVOIR_API_BASE}/collections/v7?sortBy=volume&limit=${limit}`,
-      {
-        headers: getHeaders(),
-      }
-    );
+    // Validate API key
+    if (!RESERVOIR_API_KEY) {
+      throw new Error('Reservoir API key is not configured');
+    }
+
+    // Build URL with parameters
+    const url = new URL(`${RESERVOIR_API_BASE}/collections/v7`);
+    url.searchParams.append('sortBy', 'volume1h');  // Sort by 1h volume for more active collections
+    url.searchParams.append('limit', limit.toString());
+    url.searchParams.append('includeTopBid', 'true');  // Include top bid information
+    url.searchParams.append('normalizeRoyalties', 'true');  // Normalize royalties across collections
+    
+    console.log('Fetching trending collections from Reservoir...', {
+      url: url.toString(),
+      apiKeyPresent: !!RESERVOIR_API_KEY,
+    });
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getHeaders(),
+      mode: 'cors',
+      cache: 'no-cache',
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Reservoir API Error:', {
+      console.error('Reservoir API Error Details:', {
         status: response.status,
         statusText: response.statusText,
-        body: errorText
+        headers: Object.fromEntries(response.headers.entries()),
+        body: errorText,
+        url: response.url
       });
-      throw new Error(`Failed to fetch trending collections: ${response.status} - ${errorText}`);
+      throw new Error(`Reservoir API Error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('Successfully fetched collections:', data.collections?.length || 0);
-    return data.collections || [];
+    
+    if (!data || !Array.isArray(data.collections)) {
+      console.error('Invalid API Response:', data);
+      throw new Error('Invalid API response format');
+    }
+
+    // Filter out collections with missing critical data
+    const validCollections = data.collections.filter((collection: ReservoirCollection) => 
+      collection.primaryContract && 
+      collection.name &&
+      collection.symbol &&
+      (collection.volume24h > 0 || collection.floorAsk?.price?.amount?.native > 0)
+    );
+
+    if (validCollections.length === 0) {
+      console.warn('No valid collections found in API response');
+      throw new Error('No valid collections found');
+    }
+
+    console.log('Successfully fetched collections:', {
+      totalCount: data.collections.length,
+      validCount: validCollections.length,
+      firstCollection: validCollections[0]
+    });
+
+    return validCollections;
   } catch (error) {
-    console.error('Error fetching trending collections:', error);
+    console.error('Error fetching trending collections:', {
+      error,
+      stack: error instanceof Error ? error.stack : undefined
+    });
     throw error;
   }
 }
@@ -102,21 +150,38 @@ export async function getTrendingCollections(limit = 12): Promise<ReservoirColle
  */
 export async function getCollectionDetails(contract: string): Promise<ReservoirCollection> {
   try {
-    const response = await fetch(
-      `${RESERVOIR_API_BASE}/collections/v7?contract=${contract}`,
-      {
-        headers: {
-          'accept': '*/*',
-          'x-api-key': RESERVOIR_API_KEY || "",
-        },
-      }
-    );
+    if (!contract) {
+      throw new Error('Contract address is required');
+    }
+
+    const url = new URL(`${RESERVOIR_API_BASE}/collections/v7`);
+    url.searchParams.append('contract', contract);
+    url.searchParams.append('includeTopBid', 'true');
+    url.searchParams.append('normalizeRoyalties', 'true');
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getHeaders(),
+      mode: 'cors',
+      cache: 'no-cache',
+    });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Collection Details Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
       throw new Error(`Failed to fetch collection details: ${response.status}`);
     }
 
     const data = await response.json();
+    
+    if (!data?.collections?.[0]) {
+      throw new Error('Collection not found');
+    }
+
     return data.collections[0];
   } catch (error) {
     console.error('Error fetching collection details:', error);

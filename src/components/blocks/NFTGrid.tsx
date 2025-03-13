@@ -5,32 +5,51 @@ import Image from "next/image";
 import { getTrendingCollections, type ReservoirCollection } from "@/lib/reservoir";
 
 export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: string) => void }) {
-  console.log('Environment:', process.env.NODE_ENV);
-  console.log('Reservoir API Key present:', !!process.env.NEXT_PUBLIC_RESERVOIR_API_KEY);
+  console.log('NFTGrid Environment:', {
+    env: process.env.NODE_ENV,
+    apiKeyPresent: !!process.env.NEXT_PUBLIC_RESERVOIR_API_KEY,
+    apiKey: process.env.NEXT_PUBLIC_RESERVOIR_API_KEY?.substring(0, 8) + '...'
+  });
 
-  const { data: collections, isLoading, error } = useQuery({
+  const { data: collections, isLoading, error, refetch } = useQuery({
     queryKey: ["top-nft-collections"],
     queryFn: async () => {
       try {
-        console.log('Fetching NFT collections...');
+        console.log('Initiating NFT collections fetch...');
         const reservoirCollections = await getTrendingCollections(12);
-        console.log('Received collections:', reservoirCollections?.length || 0);
         
-        // Map Reservoir data to include only the fields we need
+        if (!reservoirCollections || reservoirCollections.length === 0) {
+          console.error('No collections returned from API');
+          throw new Error('No collections returned from API');
+        }
+
+        console.log('Successfully received collections:', {
+          count: reservoirCollections.length,
+          sample: reservoirCollections.slice(0, 2).map(c => ({
+            name: c.name,
+            volume: c.volume24h,
+            floor: c.floorAsk?.price?.amount?.native
+          }))
+        });
+        
+        // Transform the data with proper null checks
         return reservoirCollections.map((collection: ReservoirCollection) => ({
           address: collection.primaryContract,
-          name: collection.name,
-          symbol: collection.symbol,
+          name: collection.name || 'Unknown Collection',
+          symbol: collection.symbol || 'UNKNOWN',
           floorPrice: collection.floorAsk?.price?.amount?.native || 0,
           totalVolume: collection.volume24h || 0,
-          imageUrl: collection.image,
+          imageUrl: collection.image || null,
         }));
       } catch (err) {
-        console.error("Error in NFT collection fetch:", err);
+        console.error("Error in NFT collection fetch:", {
+          error: err,
+          stack: err instanceof Error ? err.stack : undefined
+        });
         
-        // Only use mock data in production if fetch fails
-        if (process.env.NODE_ENV === 'production') {
-          console.log("Production environment detected, using mock data");
+        // Only use mock data in production as absolute last resort
+        if (process.env.NODE_ENV === 'production' && err instanceof Error && err.message.includes('API')) {
+          console.warn("Using mock data as fallback in production");
           return [{
             address: "0x1234...",
             name: "Test Collection",
@@ -71,7 +90,6 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
   }
 
   if (error) {
-    console.error("Render Error:", error);
     return (
       <div className="rounded-xl border-2 border-dashed p-8 text-center">
         <p className="text-muted-foreground">
@@ -80,6 +98,12 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
         <pre className="mt-2 text-xs text-muted-foreground overflow-auto">
           {error instanceof Error ? error.stack : "No error details available"}
         </pre>
+        <button
+          onClick={() => refetch()}
+          className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+        >
+          Try Again
+        </button>
       </div>
     );
   }
@@ -88,56 +112,72 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
     return (
       <div className="rounded-xl border-2 border-dashed p-8 text-center">
         <p className="text-muted-foreground">No NFT collections found</p>
+        <button
+          onClick={() => refetch()}
+          className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+        >
+          Try Again
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {collections.map((collection) => (
-        <Card
-          key={collection.address}
-          className="p-6 space-y-4 hover:bg-muted/5 transition-colors cursor-pointer"
-          onClick={() => onCollectionSelect(collection.address)}
-        >
-          <div className="flex items-center gap-4">
-            {collection.imageUrl ? (
-              <div className="relative size-12">
-                <Image
-                  src={collection.imageUrl}
-                  alt={collection.name}
-                  fill
-                  className="rounded-full object-cover"
-                  unoptimized
-                />
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {collections.map((collection) => (
+          <Card
+            key={collection.address}
+            className="p-6 space-y-4 hover:bg-muted/5 transition-colors cursor-pointer"
+            onClick={() => onCollectionSelect(collection.address)}
+          >
+            <div className="flex items-center gap-4">
+              {collection.imageUrl ? (
+                <div className="relative size-12">
+                  <Image
+                    src={collection.imageUrl}
+                    alt={collection.name}
+                    fill
+                    className="rounded-full object-cover"
+                    unoptimized
+                  />
+                </div>
+              ) : (
+                <div className="size-12 rounded-full bg-muted flex items-center justify-center text-2xl font-bold">
+                  {collection.symbol[0]}
+                </div>
+              )}
+              <div>
+                <h3 className="font-semibold">{collection.name}</h3>
+                <p className="text-sm text-muted-foreground">{collection.symbol}</p>
               </div>
-            ) : (
-              <div className="size-12 rounded-full bg-muted flex items-center justify-center text-2xl font-bold">
-                {collection.symbol[0]}
-              </div>
-            )}
-            <div>
-              <h3 className="font-semibold">{collection.name}</h3>
-              <p className="text-sm text-muted-foreground">{collection.symbol}</p>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-muted-foreground">Floor Price</p>
-              <p className="font-medium">
-                {formatNumber(collection.floorPrice)} ETH
-              </p>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-muted-foreground">Floor Price</p>
+                <p className="font-medium">
+                  {formatNumber(collection.floorPrice)} ETH
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">24h Volume</p>
+                <p className="font-medium">
+                  {formatNumber(collection.totalVolume)} ETH
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-muted-foreground">24h Volume</p>
-              <p className="font-medium">
-                {formatNumber(collection.totalVolume)} ETH
-              </p>
-            </div>
-          </div>
-        </Card>
-      ))}
+          </Card>
+        ))}
+      </div>
+      <div className="text-center">
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
+        >
+          Refresh Data
+        </button>
+      </div>
     </div>
   );
 } 
