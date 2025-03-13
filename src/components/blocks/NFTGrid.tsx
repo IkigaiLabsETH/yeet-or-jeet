@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
-import { LoadingSpinner } from "./Loading";
 import { formatNumber } from "@/lib/utils";
+import Image from "next/image";
 
 type NFTCollection = {
   address: string;
@@ -74,11 +74,14 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
         >
           <div className="flex items-center gap-4">
             {collection.imageUrl ? (
-              <img
-                src={collection.imageUrl}
-                alt={collection.name}
-                className="size-12 rounded-full object-cover"
-              />
+              <div className="relative size-12">
+                <Image
+                  src={collection.imageUrl}
+                  alt={collection.name}
+                  fill
+                  className="rounded-full object-cover"
+                />
+              </div>
             ) : (
               <div className="size-12 rounded-full bg-muted flex items-center justify-center text-2xl font-bold">
                 {collection.symbol[0]}
