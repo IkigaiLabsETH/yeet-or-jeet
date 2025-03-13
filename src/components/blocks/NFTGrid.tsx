@@ -16,21 +16,43 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
   const { data: collections, isLoading, error } = useQuery({
     queryKey: ["top-nft-collections"],
     queryFn: async () => {
-      // Fetch from Cielo API
-      const CIELO_API_BASE = "https://feed-api.cielo.finance/api/v1";
-      const response = await fetch(`${CIELO_API_BASE}/nft/trending`, {
-        headers: {
-          accept: "application/json",
-          "X-API-KEY": process.env.NEXT_PUBLIC_CIELO_API_KEY || "",
-        },
-      });
+      try {
+        // Fetch from Cielo API
+        const CIELO_API_BASE = "https://feed-api.cielo.finance/api/v1";
+        const apiKey = process.env.NEXT_PUBLIC_CIELO_API_KEY;
+        
+        console.log("Using API Key:", apiKey ? "Present" : "Missing");
+        
+        const response = await fetch(`${CIELO_API_BASE}/nft/trending`, {
+          headers: {
+            accept: "application/json",
+            "X-API-KEY": apiKey || "",
+          },
+        });
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch NFT collections");
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("API Error:", {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorText
+          });
+          throw new Error(`Failed to fetch NFT collections: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log("API Response:", data);
+        
+        if (!data.collections || !Array.isArray(data.collections)) {
+          console.error("Invalid API response format:", data);
+          throw new Error("Invalid API response format");
+        }
+
+        return data.collections as NFTCollection[];
+      } catch (err) {
+        console.error("Error in NFT collection fetch:", err);
+        throw err;
       }
-
-      const data = await response.json();
-      return data.collections as NFTCollection[];
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -56,10 +78,23 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
     );
   }
 
-  if (error || !collections) {
+  if (error) {
     return (
       <div className="rounded-xl border-2 border-dashed p-8 text-center">
-        <p className="text-muted-foreground">Failed to load NFT collections</p>
+        <p className="text-muted-foreground">
+          {error instanceof Error ? error.message : "Failed to load NFT collections"}
+        </p>
+        <pre className="mt-2 text-xs text-muted-foreground overflow-auto">
+          {error instanceof Error ? error.stack : "No error details available"}
+        </pre>
+      </div>
+    );
+  }
+
+  if (!collections || collections.length === 0) {
+    return (
+      <div className="rounded-xl border-2 border-dashed p-8 text-center">
+        <p className="text-muted-foreground">No NFT collections found</p>
       </div>
     );
   }
