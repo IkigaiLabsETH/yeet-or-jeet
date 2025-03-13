@@ -3,6 +3,13 @@ import { z } from "zod";
 const CIELO_API_KEY = process.env.CIELO_API_KEY;
 const CIELO_API_BASE = "https://feed-api.cielo.finance/api/v1";
 
+type NFTHolding = {
+  token_id: string;
+  collection_address: string;
+  name?: string;
+  image_url?: string;
+};
+
 const inputSchema = z.object({
   chainId: z.number(),
   nftAddress: z.string(),
@@ -43,7 +50,7 @@ export async function getNFTAnalysis(input: z.infer<typeof inputSchema>) {
       return { ok: false, error: "Failed to fetch wallet NFT holdings" };
     }
 
-    const walletHoldings = await walletHoldingsResponse.json();
+    const walletHoldings = await walletHoldingsResponse.json() as NFTHolding[];
 
     // Format the response
     return {
@@ -84,7 +91,7 @@ export async function getNFTAnalysis(input: z.infer<typeof inputSchema>) {
 
 ## Your Holdings
 - Number of NFTs: ${walletHoldings.length || 0}
-${walletHoldings.map((nft: any) => `- Token ID: ${nft.token_id}`).join('\n')}
+${walletHoldings.map((nft: NFTHolding) => `- Token ID: ${nft.token_id}`).join('\n')}
 
 ## Market Analysis
 Coming soon...

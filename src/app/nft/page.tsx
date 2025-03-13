@@ -111,9 +111,7 @@ export default function NFTPage() {
   return null;
 }
 
-function NFTLandingScreen(props: {
-  onSubmit: (values: { nftAddress: string }) => void;
-}) {
+function NFTLandingScreen({ onSubmit }: { onSubmit: (values: { nftAddress: string }) => void }) {
   const account = useActiveAccount();
 
   return (
@@ -154,7 +152,7 @@ function NFTLandingScreen(props: {
         ) : (
           <NFTGrid 
             onCollectionSelect={(address) => {
-              props.onSubmit({ nftAddress: address });
+              onSubmit({ nftAddress: address });
             }} 
           />
         )}
