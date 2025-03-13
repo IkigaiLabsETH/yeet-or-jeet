@@ -1,14 +1,5 @@
 import { z } from "zod";
-
-const CIELO_API_KEY = process.env.CIELO_API_KEY;
-const CIELO_API_BASE = "https://feed-api.cielo.finance/api/v1";
-
-type NFTHolding = {
-  token_id: string;
-  collection_address: string;
-  name?: string;
-  image_url?: string;
-};
+import { getCollectionDetails, getCollectionTokens, getUserNFTs } from "@/lib/reservoir";
 
 const inputSchema = z.object({
   chainId: z.number(),
@@ -20,37 +11,36 @@ export async function getNFTAnalysis(input: z.infer<typeof inputSchema>) {
   try {
     const validatedInput = inputSchema.parse(input);
 
-    // First, get NFT collection stats
-    const collectionStatsUrl = `${CIELO_API_BASE}/nft/${validatedInput.nftAddress}/stats`;
-    const collectionStatsResponse = await fetch(collectionStatsUrl, {
-      headers: {
-        accept: "application/json",
-        "X-API-KEY": CIELO_API_KEY || "",
-      },
+    console.log('Fetching NFT analysis data...', {
+      chainId: validatedInput.chainId,
+      nftAddress: validatedInput.nftAddress,
+      walletAddress: validatedInput.walletAddress
     });
 
-    if (!collectionStatsResponse.ok) {
-      console.error("Failed to fetch NFT collection stats:", await collectionStatsResponse.text());
-      return { ok: false, error: "Failed to fetch NFT collection stats" };
-    }
-
-    const collectionStats = await collectionStatsResponse.json();
-
-    // Then, get wallet's NFT holdings
-    const walletHoldingsUrl = `${CIELO_API_BASE}/${validatedInput.walletAddress}/nft/holdings`;
-    const walletHoldingsResponse = await fetch(walletHoldingsUrl, {
-      headers: {
-        accept: "application/json",
-        "X-API-KEY": CIELO_API_KEY || "",
-      },
+    // Get collection details
+    const collectionDetails = await getCollectionDetails(validatedInput.nftAddress);
+    console.log('Collection details fetched:', {
+      name: collectionDetails.name,
+      symbol: collectionDetails.symbol,
+      floorPrice: collectionDetails.floorAsk?.price?.amount?.native
     });
 
-    if (!walletHoldingsResponse.ok) {
-      console.error("Failed to fetch wallet NFT holdings:", await walletHoldingsResponse.text());
-      return { ok: false, error: "Failed to fetch wallet NFT holdings" };
-    }
+    // Get user's NFT holdings
+    const userHoldings = await getUserNFTs(validatedInput.walletAddress);
+    const collectionHoldings = userHoldings.tokens.filter(
+      token => token.token.contract.toLowerCase() === validatedInput.nftAddress.toLowerCase()
+    );
 
-    const walletHoldings = await walletHoldingsResponse.json() as NFTHolding[];
+    console.log('User holdings fetched:', {
+      totalNFTs: userHoldings.tokens.length,
+      collectionNFTs: collectionHoldings.length
+    });
+
+    // Get collection tokens for analysis
+    const collectionTokens = await getCollectionTokens(validatedInput.nftAddress);
+    console.log('Collection tokens fetched:', {
+      count: collectionTokens.tokens.length
+    });
 
     // Format the response
     return {
@@ -61,22 +51,22 @@ export async function getNFTAnalysis(input: z.infer<typeof inputSchema>) {
             section: "inputs",
             nftInfo: {
               address: validatedInput.nftAddress,
-              name: collectionStats.name || "Unknown Collection",
-              symbol: collectionStats.symbol || "???",
-              floorPrice: collectionStats.floor_price_eth?.toString() || "0",
-              totalVolume: collectionStats.total_volume_eth?.toString() || "0",
+              name: collectionDetails.name || "Unknown Collection",
+              symbol: collectionDetails.symbol || "???",
+              floorPrice: collectionDetails.floorAsk?.price?.amount?.native?.toString() || "0",
+              totalVolume: collectionDetails.volume24h?.toString() || "0",
             },
             walletInfo: {
               address: validatedInput.walletAddress,
-              balance: "0", // TODO: Get ETH balance
-              holdings: walletHoldings.length.toString() || "0",
+              balance: "0", // ETH balance not needed for now
+              holdings: collectionHoldings.length.toString(),
             },
           },
           {
             section: "verdict",
-            type: "hold", // TODO: Implement AI decision making
-            title: "Analysis in Progress",
-            description: "Detailed NFT analysis coming soon",
+            type: collectionDetails.volume24h > 100 ? "buy" : "hold",
+            title: "Collection Analysis",
+            description: `${collectionDetails.name} shows ${collectionDetails.volume24h > 100 ? "strong" : "moderate"} trading activity with ${collectionDetails.volume24h} ETH 24h volume.`,
             actions: [],
           },
           {
@@ -84,17 +74,21 @@ export async function getNFTAnalysis(input: z.infer<typeof inputSchema>) {
             content: `# NFT Collection Analysis
 
 ## Collection Overview
-- Name: ${collectionStats.name || "Unknown Collection"}
-- Floor Price: ${collectionStats.floor_price_eth || 0} ETH
-- Total Volume: ${collectionStats.total_volume_eth || 0} ETH
-- Unique Holders: ${collectionStats.num_owners || 0}
+- Name: ${collectionDetails.name || "Unknown Collection"}
+- Symbol: ${collectionDetails.symbol || "???"}
+- Floor Price: ${collectionDetails.floorAsk?.price?.amount?.native || 0} ETH
+- 24h Volume: ${collectionDetails.volume24h || 0} ETH
+- Total Supply: ${collectionDetails.tokenCount || 0} NFTs
 
 ## Your Holdings
-- Number of NFTs: ${walletHoldings.length || 0}
-${walletHoldings.map((nft: NFTHolding) => `- Token ID: ${nft.token_id}`).join('\n')}
+- Number of NFTs: ${collectionHoldings.length}
+${collectionHoldings.map(nft => `- Token ID: ${nft.token.tokenId}`).join('\n')}
 
 ## Market Analysis
-Coming soon...
+- Floor Price: ${collectionDetails.floorAsk?.price?.amount?.native || 0} ETH
+- 24h Volume: ${collectionDetails.volume24h || 0} ETH
+- Total Supply: ${collectionDetails.tokenCount || 0} NFTs
+${collectionDetails.description ? `\n## Collection Description\n${collectionDetails.description}` : ''}
 `,
           },
         ],
