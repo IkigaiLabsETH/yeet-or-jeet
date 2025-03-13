@@ -163,7 +163,10 @@ export async function getNFTAnalysis(input: z.infer<typeof inputSchema>): Promis
       You are an NFT market analyst with access to on-chain data. Analyze this NFT collection and the user's wallet:
       
       Collection Data:
-      ${JSON.stringify(analysisData)}
+      ${JSON.stringify({
+        ...analysisData,
+        bidMetrics: bidAnalysis // Include bid analysis in the data for AI processing
+      })}
       
       Wallet Address: ${validatedInput.walletAddress}
       
@@ -172,34 +175,40 @@ export async function getNFTAnalysis(input: z.infer<typeof inputSchema>): Promis
          - Volume trends (daily, weekly, monthly changes)
          - Trading velocity and liquidity
          - Price movements relative to market conditions
+         - Bid-ask spread and floor bid analysis
       
       2. Trading patterns and whale activity
          - Top trader behaviors
          - Accumulation/distribution patterns
          - Wash trading indicators
+         - Bidding patterns and concentration
       
       3. User's holdings analysis
          - Position value relative to floor
          - Rarity and special traits
          - Historical performance of similar holdings
+         - Active bid opportunities
       
       4. Collection strength indicators
          - Holder distribution
          - Trading consistency
          - Community engagement
          - Relative market position
+         - Bid depth and quality
       
       5. Risk assessment
          - Market manipulation indicators
          - Liquidity concerns
          - Whale concentration
          - Volume sustainability
+         - Bid validity and reliability
       
       Based on the market data and user's current position (if any):
       - Specific buy/hold/sell recommendation with price targets
       - Position sizing suggestion
       - Risk mitigation strategies
       - Potential catalysts and warning signs to monitor
+      - Optimal bid/offer strategies
     `;
 
     console.log("Formatting questions with Claude");
@@ -338,7 +347,8 @@ function analyzeBids(bids: ReservoirCollectionBid[]) {
   const distribution = {
     min: Math.min(...bidPrices) || 0,
     max: Math.max(...bidPrices) || 0,
-    average: bidPrices.reduce((a, b) => a + b, 0) / bidPrices.length || 0
+    average: bidPrices.reduce((a, b) => a + b, 0) / bidPrices.length || 0,
+    floorBid: Math.min(...bidPrices) || 0
   };
 
   return {
@@ -351,11 +361,4 @@ function analyzeBids(bids: ReservoirCollectionBid[]) {
       averageValidityPeriod: validBids.reduce((acc, bid) => acc + (bid.validUntil - bid.validFrom), 0) / validBids.length || 0
     }
   };
-}
-
-function calculateFloorBid(bids: ReservoirCollectionBid[]) {
-  const validBids = bids.filter(bid => bid.validUntil > Date.now() / 1000);
-  if (!validBids.length) return 0;
-  
-  return Math.min(...validBids.map(bid => bid.price.amount.usd));
 } 
