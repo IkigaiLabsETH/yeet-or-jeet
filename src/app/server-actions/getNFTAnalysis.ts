@@ -87,6 +87,41 @@ export type NFTAnalysisResponse =
       error: string;
     };
 
+// Add type definitions for wallet stats
+interface WalletStats {
+  wallet: string;
+  realized_pnl_usd: number;
+  realized_roi_percentage: number;
+  tokens_traded: number;
+  unrealized_pnl_usd: number;
+  unrealized_roi_percentage: number;
+  winrate: number;
+  average_holding_time: number;
+  combined_pnl_usd: number;
+  combined_roi_percentage: number;
+}
+
+interface WalletAnalysis {
+  tradingProfile: {
+    experience: "expert" | "experienced" | "intermediate" | "beginner" | "unknown";
+    riskLevel: "conservative" | "moderate" | "aggressive" | "highly aggressive" | "unknown";
+    averageHoldingPeriod: number;
+    successRate: number;
+  };
+  performance: {
+    totalPnL: number;
+    averageROI: number;
+    realizedPnL: number;
+    unrealizedPnL: number;
+  };
+  riskMetrics: {
+    winRate: number;
+    averageHoldTime: number;
+    tokensTraded: number;
+    profitabilityScore: number;
+  };
+}
+
 export async function getNFTAnalysis(input: z.infer<typeof inputSchema>): Promise<NFTAnalysisResponse> {
   try {
     const validatedInput = inputSchema.parse(input);
@@ -456,7 +491,7 @@ function analyzeBids(bids: ReservoirCollectionBid[] | undefined) {
   }
 }
 
-function analyzeWalletPerformance(walletStats: any) {
+function analyzeWalletPerformance(walletStats: WalletStats | null): WalletAnalysis {
   if (!walletStats) {
     return {
       tradingProfile: {
@@ -504,7 +539,7 @@ function analyzeWalletPerformance(walletStats: any) {
   };
 }
 
-function calculateProfitabilityScore(stats: any): number {
+function calculateProfitabilityScore(stats: WalletStats): number {
   if (!stats) return 0;
   
   // Weighted scoring system
@@ -528,14 +563,14 @@ function calculateProfitabilityScore(stats: any): number {
   );
 }
 
-function categorizeTradingExperience(tokensTraded: number): string {
+function categorizeTradingExperience(tokensTraded: number): WalletAnalysis['tradingProfile']['experience'] {
   if (tokensTraded >= 1000) return "expert";
   if (tokensTraded >= 100) return "experienced";
   if (tokensTraded >= 10) return "intermediate";
   return "beginner";
 }
 
-function categorizeRiskLevel(winRate: number, avgHoldTime: number): string {
+function categorizeRiskLevel(winRate: number, avgHoldTime: number): WalletAnalysis['tradingProfile']['riskLevel'] {
   const riskScore = (winRate / 100) * 0.7 + (Math.min(avgHoldTime / (30 * 24 * 60 * 60), 1)) * 0.3;
   if (riskScore >= 0.8) return "conservative";
   if (riskScore >= 0.6) return "moderate";
