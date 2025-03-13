@@ -19,6 +19,7 @@ import {
   synthesizeResponses,
 } from "@/lib/helpers/ai";
 import { isAddress } from "thirdweb";
+import { getWalletStats } from "@/lib/helpers/cielo";
 
 const inputSchema = z.object({
   chainId: z.number(),
@@ -58,6 +59,17 @@ export type NFTStartingData = {
     uniqueSellers: number;
   };
   collectionBids: ReservoirCollectionBid[];
+  walletStats?: {
+    realized_pnl_usd: number;
+    realized_roi_percentage: number;
+    tokens_traded: number;
+    unrealized_pnl_usd: number;
+    unrealized_roi_percentage: number;
+    winrate: number;
+    average_holding_time: number;
+    combined_pnl_usd: number;
+    combined_roi_percentage: number;
+  };
 };
 
 export type NFTAnalysis = {
@@ -94,7 +106,7 @@ export async function getNFTAnalysis(input: z.infer<typeof inputSchema>): Promis
       };
     }
 
-    console.log('Gathering NFT collection data...', {
+    console.log('Gathering NFT collection and wallet data...', {
       chainId: validatedInput.chainId,
       nftAddress: validatedInput.nftAddress,
       walletAddress: validatedInput.walletAddress
@@ -107,14 +119,16 @@ export async function getNFTAnalysis(input: z.infer<typeof inputSchema>): Promis
       collectionTokens,
       dailyVolumes,
       topTraders,
-      collectionBids
+      collectionBids,
+      walletStats
     ] = await Promise.all([
       getCollectionDetails(validatedInput.nftAddress),
       getUserNFTs(validatedInput.walletAddress),
       getCollectionTokens(validatedInput.nftAddress),
       getCollectionDailyVolumes(validatedInput.nftAddress),
       getCollectionTopTraders(validatedInput.nftAddress),
-      getCollectionBids(validatedInput.nftAddress, 50) // Fetch top 50 bids
+      getCollectionBids(validatedInput.nftAddress, 50),
+      getWalletStats(validatedInput.walletAddress, "ethereum", "max") // Add wallet stats
     ]);
 
     const collectionHoldings = userHoldings.tokens.filter(
@@ -153,19 +167,23 @@ export async function getNFTAnalysis(input: z.infer<typeof inputSchema>): Promis
       topTraders,
       volumeTrend,
       tradingMetrics,
-      collectionBids: collectionBids.bids
+      collectionBids: collectionBids.bids,
+      walletStats: walletStats || undefined,
     };
 
-    // Enhanced analysis with bid data
+    // Enhanced analysis with bid data and wallet performance
     const bidAnalysis = analyzeBids(analysisData.collectionBids);
+    const walletAnalysis = analyzeWalletPerformance(walletStats);
     
     const initialQuestion = `
-      You are an NFT market analyst with access to on-chain data. Analyze this NFT collection and the user's wallet:
+      You are an NFT market analyst with access to on-chain data and wallet performance history. 
+      Analyze this NFT collection and the user's wallet:
       
       Collection Data:
       ${JSON.stringify({
         ...analysisData,
-        bidMetrics: bidAnalysis // Include bid analysis in the data for AI processing
+        bidMetrics: bidAnalysis,
+        walletMetrics: walletAnalysis
       })}
       
       Wallet Address: ${validatedInput.walletAddress}
@@ -183,11 +201,13 @@ export async function getNFTAnalysis(input: z.infer<typeof inputSchema>): Promis
          - Wash trading indicators
          - Bidding patterns and concentration
       
-      3. User's holdings analysis
+      3. User's trading profile and holdings analysis
+         - Overall trading performance (PnL, ROI, winrate)
+         - Average holding periods and exit timing
          - Position value relative to floor
-         - Rarity and special traits
-         - Historical performance of similar holdings
+         - Historical performance in similar collections
          - Active bid opportunities
+         - Risk management patterns
       
       4. Collection strength indicators
          - Holder distribution
@@ -202,13 +222,14 @@ export async function getNFTAnalysis(input: z.infer<typeof inputSchema>): Promis
          - Whale concentration
          - Volume sustainability
          - Bid validity and reliability
+         - User's risk profile alignment
       
-      Based on the market data and user's current position (if any):
+      Based on the market data, wallet history, and user's current position:
       - Specific buy/hold/sell recommendation with price targets
-      - Position sizing suggestion
-      - Risk mitigation strategies
+      - Position sizing suggestion based on past performance
+      - Risk mitigation strategies aligned with user's trading style
       - Potential catalysts and warning signs to monitor
-      - Optimal bid/offer strategies
+      - Optimal bid/offer strategies considering user's track record
     `;
 
     console.log("Formatting questions with Claude");
@@ -433,4 +454,91 @@ function analyzeBids(bids: ReservoirCollectionBid[] | undefined) {
       }
     };
   }
+}
+
+function analyzeWalletPerformance(walletStats: any) {
+  if (!walletStats) {
+    return {
+      tradingProfile: {
+        experience: "unknown",
+        riskLevel: "unknown",
+        averageHoldingPeriod: 0,
+        successRate: 0
+      },
+      performance: {
+        totalPnL: 0,
+        averageROI: 0,
+        realizedPnL: 0,
+        unrealizedPnL: 0
+      },
+      riskMetrics: {
+        winRate: 0,
+        averageHoldTime: 0,
+        tokensTraded: 0,
+        profitabilityScore: 0
+      }
+    };
+  }
+
+  const profitabilityScore = calculateProfitabilityScore(walletStats);
+
+  return {
+    tradingProfile: {
+      experience: categorizeTradingExperience(walletStats.tokens_traded),
+      riskLevel: categorizeRiskLevel(walletStats.winrate, walletStats.average_holding_time),
+      averageHoldingPeriod: walletStats.average_holding_time,
+      successRate: walletStats.winrate
+    },
+    performance: {
+      totalPnL: walletStats.combined_pnl_usd,
+      averageROI: walletStats.combined_roi_percentage,
+      realizedPnL: walletStats.realized_pnl_usd,
+      unrealizedPnL: walletStats.unrealized_pnl_usd
+    },
+    riskMetrics: {
+      winRate: walletStats.winrate,
+      averageHoldTime: walletStats.average_holding_time,
+      tokensTraded: walletStats.tokens_traded,
+      profitabilityScore
+    }
+  };
+}
+
+function calculateProfitabilityScore(stats: any): number {
+  if (!stats) return 0;
+  
+  // Weighted scoring system
+  const weights = {
+    winRate: 0.3,
+    roi: 0.3,
+    consistency: 0.2,
+    volume: 0.2
+  };
+
+  const winRateScore = Math.min(stats.winrate / 100, 1);
+  const roiScore = Math.min(Math.max(stats.combined_roi_percentage / 200, 0), 1);
+  const consistencyScore = Math.min(stats.average_holding_time / (7 * 24 * 60 * 60), 1); // Normalize to 7 days
+  const volumeScore = Math.min(stats.tokens_traded / 100, 1);
+
+  return (
+    winRateScore * weights.winRate +
+    roiScore * weights.roi +
+    consistencyScore * weights.consistency +
+    volumeScore * weights.volume
+  );
+}
+
+function categorizeTradingExperience(tokensTraded: number): string {
+  if (tokensTraded >= 1000) return "expert";
+  if (tokensTraded >= 100) return "experienced";
+  if (tokensTraded >= 10) return "intermediate";
+  return "beginner";
+}
+
+function categorizeRiskLevel(winRate: number, avgHoldTime: number): string {
+  const riskScore = (winRate / 100) * 0.7 + (Math.min(avgHoldTime / (30 * 24 * 60 * 60), 1)) * 0.3;
+  if (riskScore >= 0.8) return "conservative";
+  if (riskScore >= 0.6) return "moderate";
+  if (riskScore >= 0.4) return "aggressive";
+  return "highly aggressive";
 } 
