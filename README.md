@@ -1,6 +1,6 @@
 # This is the b/era
 
-A DeFi trading assistant powered by AI that helps you make informed decisions about when to buy (DCA IN) or sell DCA OUT) tokens on Berachain.
+A DeFi trading assistant powered by AI that helps you make informed decisions about when to buy (DCA IN) or sell (DCA OUT) tokens on Berachain and analyze NFT collections on Ethereum.
 
 ## Features
 
@@ -14,6 +14,14 @@ A DeFi trading assistant powered by AI that helps you make informed decisions ab
     - Excludes common stablecoins (USDT, USDC, DAI, etc.)
     - Specifically excludes Berachain stablecoins (NECT, sUSD.e, sUSDa)
   - Fallback to curated token list when APIs are unavailable
+
+- **NFT Collection Analysis**: Analyze NFT collections on Ethereum
+  - View collection floor price and volume
+  - Track your NFT holdings
+  - Get AI-powered insights on collection performance
+  - Monitor market sentiment and trading patterns
+  - Analyze holder distribution and rarity data
+  - Get personalized recommendations based on your portfolio
 
 - **Real-time Price Data**: Integrated with multiple data sources for accurate and up-to-date token information
   - GeckoTerminal API as primary data source for comprehensive token information
