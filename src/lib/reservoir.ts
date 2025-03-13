@@ -133,11 +133,10 @@ export async function getTrendingCollections(limit = 12): Promise<ReservoirColle
 
     // Build URL with parameters
     const url = new URL(`${RESERVOIR_API_BASE}/collections/v7`);
-    url.searchParams.append('sortBy', '30DayVolume');  // Changed to 30DayVolume
+    url.searchParams.append('sortBy', '1DayVolume');  // Get top collections by 24h volume first
     url.searchParams.append('limit', limit.toString());
     url.searchParams.append('includeTopBid', 'true');
     url.searchParams.append('sortDirection', 'desc');
-    url.searchParams.append('includeVolume', 'true'); // Add volume data
     
     console.log('API Request:', {
       url: url.toString(),
@@ -148,12 +147,6 @@ export async function getTrendingCollections(limit = 12): Promise<ReservoirColle
     const response = await fetch(url, {
       method: 'GET',
       headers: getHeaders(),
-    });
-
-    console.log('API Response Status:', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries())
     });
 
     if (!response.ok) {
@@ -168,17 +161,6 @@ export async function getTrendingCollections(limit = 12): Promise<ReservoirColle
     }
 
     const data = await response.json();
-    console.log('API Response Data:', {
-      hasData: !!data,
-      hasCollections: !!data?.collections,
-      collectionCount: data?.collections?.length,
-      sampleCollection: data?.collections?.[0] ? {
-        name: data.collections[0].name,
-        contract: data.collections[0].primaryContract,
-        volume24h: data.collections[0].volume24h,
-        volume30d: data.collections[0].volume30d
-      } : null
-    });
     
     if (!data || !Array.isArray(data.collections)) {
       console.error('Invalid API Response Structure:', data);
@@ -189,27 +171,61 @@ export async function getTrendingCollections(limit = 12): Promise<ReservoirColle
     const validCollections = data.collections.filter((collection: ReservoirCollection) => 
       collection.primaryContract && 
       collection.name &&
-      collection.symbol &&
-      ((collection.volume30d > 0) || (collection.volume24h > 0) || collection.floorAsk?.price?.amount?.native > 0)
+      collection.symbol
     );
 
-    console.log('Filtered Collections:', {
-      total: data.collections.length,
-      valid: validCollections.length,
-      first: validCollections[0] ? {
-        name: validCollections[0].name,
-        volume24h: validCollections[0].volume24h,
-        volume30d: validCollections[0].volume30d,
-        floor: validCollections[0].floorAsk?.price?.amount?.native
-      } : null
+    // Fetch 30-day volumes for each collection in parallel
+    const collectionsWithVolumes = await Promise.all(
+      validCollections.map(async (collection: ReservoirCollection) => {
+        try {
+          const dailyVolumesUrl = new URL(`${RESERVOIR_API_BASE}/collections/daily-volumes/v1`);
+          dailyVolumesUrl.searchParams.append('collection', collection.primaryContract);
+          
+          const volumeResponse = await fetch(dailyVolumesUrl, {
+            headers: getHeaders(),
+          });
+
+          if (!volumeResponse.ok) {
+            console.warn(`Failed to fetch daily volumes for ${collection.name}:`, volumeResponse.statusText);
+            return collection;
+          }
+
+          const volumeData = await volumeResponse.json();
+          const thirtyDayVolume = (volumeData.volumes || [])
+            .slice(0, 30)
+            .reduce((sum: number, day: DailyVolume) => sum + (day.volume || 0), 0);
+
+          return {
+            ...collection,
+            volume30d: thirtyDayVolume
+          };
+        } catch (error) {
+          console.warn(`Error fetching daily volumes for ${collection.name}:`, error);
+          return collection;
+        }
+      })
+    );
+
+    // Sort collections by 30-day volume
+    const sortedCollections = collectionsWithVolumes.sort((a, b) => 
+      (b.volume30d || 0) - (a.volume30d || 0)
+    );
+
+    console.log('Collections with 30d volumes:', {
+      total: sortedCollections.length,
+      sample: sortedCollections.slice(0, 2).map(c => ({
+        name: c.name,
+        volume30d: c.volume30d,
+        floor: c.floorAsk?.price?.amount?.native
+      }))
     });
 
-    if (validCollections.length === 0) {
+    if (sortedCollections.length === 0) {
       console.warn('No valid collections found in response');
       throw new Error('No valid collections found');
     }
 
-    return validCollections;
+    return sortedCollections;
   } catch (error) {
     console.error('Trending Collections Error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
