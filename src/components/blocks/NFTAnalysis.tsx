@@ -1,8 +1,15 @@
+/**
+ * Reference implementation of NFT analysis display component.
+ * This component demonstrates how to structure and display NFT analysis data
+ * using the DetailedAnalysis component.
+ * 
+ * @param analysis - Optional analysis string that can be used to override default sections
+ */
 import { DetailedAnalysis } from "./DetailedAnalysis";
 
-export function NFTAnalysis({ analysis }: { analysis: string }) {
-  // Parse the analysis into sections
-  const sections = [
+export function NFTAnalysis({ analysis }: { analysis?: string }) {
+  // Example sections - can be overridden by parsing the analysis parameter
+  const sections = analysis ? JSON.parse(analysis) : [
     {
       title: "Market Analysis 📊",
       content: `Recent Performance:
