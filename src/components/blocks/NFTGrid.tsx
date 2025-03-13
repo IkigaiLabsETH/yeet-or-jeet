@@ -4,15 +4,6 @@ import { formatNumber } from "@/lib/utils";
 import Image from "next/image";
 import { getTrendingCollections, type ReservoirCollection } from "@/lib/reservoir";
 
-type NFTCollection = {
-  address: string;
-  name: string;
-  symbol: string;
-  floorPrice: number;
-  totalVolume: number;
-  imageUrl?: string;
-};
-
 export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: string) => void }) {
   const { data: collections, isLoading, error } = useQuery({
     queryKey: ["top-nft-collections"],
@@ -20,7 +11,7 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
       try {
         const reservoirCollections = await getTrendingCollections(12);
         
-        // Map Reservoir data to our NFTCollection type
+        // Map Reservoir data to include only the fields we need
         return reservoirCollections.map((collection: ReservoirCollection) => ({
           address: collection.primaryContract,
           name: collection.name,
@@ -35,17 +26,14 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
         // If we're in production and the fetch fails, return mock data
         if (process.env.NODE_ENV === 'production') {
           console.log("Production environment detected, using mock data");
-          return [
-            {
-              address: "0x1234...",
-              name: "Test Collection",
-              symbol: "TEST",
-              floorPrice: 1.5,
-              totalVolume: 100,
-              imageUrl: null
-            },
-            // Add more mock items as needed
-          ];
+          return [{
+            address: "0x1234...",
+            name: "Test Collection",
+            symbol: "TEST",
+            floorPrice: 1.5,
+            totalVolume: 100,
+            imageUrl: null
+          }];
         }
         
         throw err;
