@@ -1,6 +1,16 @@
 const RESERVOIR_API_KEY = process.env.NEXT_PUBLIC_RESERVOIR_API_KEY;
 const RESERVOIR_API_BASE = "https://api.reservoir.tools";
 
+// Common headers for all Reservoir API requests
+const getHeaders = () => {
+  const headers = {
+    'accept': '*/*',
+    'x-api-key': RESERVOIR_API_KEY || "",
+  };
+  console.log('Using Reservoir API Key:', RESERVOIR_API_KEY ? 'Present' : 'Missing');
+  return headers;
+};
+
 // Types for Reservoir API responses
 export interface ReservoirCollection {
   id: string;
@@ -58,22 +68,27 @@ export interface ReservoirToken {
  */
 export async function getTrendingCollections(limit = 12): Promise<ReservoirCollection[]> {
   try {
+    console.log('Fetching trending collections from Reservoir...');
     const response = await fetch(
       `${RESERVOIR_API_BASE}/collections/v7?sortBy=volume&limit=${limit}`,
       {
-        headers: {
-          'accept': '*/*',
-          'x-api-key': RESERVOIR_API_KEY || "",
-        },
+        headers: getHeaders(),
       }
     );
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch trending collections: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Reservoir API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      throw new Error(`Failed to fetch trending collections: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    return data.collections;
+    console.log('Successfully fetched collections:', data.collections?.length || 0);
+    return data.collections || [];
   } catch (error) {
     console.error('Error fetching trending collections:', error);
     throw error;
