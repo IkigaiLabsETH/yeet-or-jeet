@@ -66,6 +66,54 @@ export interface ReservoirToken {
   };
 }
 
+export interface DailyVolume {
+  date: string;
+  volume: number;
+  rank: number;
+  salesCount: number;
+}
+
+export interface TopTrader {
+  address: string;
+  totalBought: number;
+  totalSold: number;
+  totalSpent: number;
+  totalReceived: number;
+  netAmount: number;
+  tradesCount: number;
+}
+
+export interface ReservoirCollectionBid {
+  id: string;
+  price: {
+    currency: {
+      contract: string;
+      name: string;
+      symbol: string;
+      decimals: number;
+    };
+    amount: {
+      raw: string;
+      decimal: number;
+      usd: number;
+      native: number;
+    };
+  };
+  maker: string;
+  validFrom: number;
+  validUntil: number;
+  quantityRemaining: number;
+  source: {
+    domain: string;
+    name: string;
+    icon: string;
+  };
+}
+
+export interface ReservoirCollectionBidsResponse {
+  bids: ReservoirCollectionBid[];
+}
+
 /**
  * Get trending NFT collections
  * @param limit Number of collections to return
@@ -353,4 +401,76 @@ export async function getUserNFTs(
     console.error('Error fetching user NFTs:', error);
     throw error;
   }
-} 
+}
+
+export async function getCollectionDailyVolumes(collectionId: string): Promise<DailyVolume[]> {
+  try {
+    const response = await fetch(
+      `https://api.reservoir.tools/collections/daily-volumes/v1?collection=${collectionId}`,
+      {
+        headers: {
+          'x-api-key': process.env.NEXT_PUBLIC_RESERVOIR_API_KEY || '',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch daily volumes: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.volumes || [];
+  } catch (error) {
+    console.error('Error fetching daily volumes:', error);
+    return [];
+  }
+}
+
+export async function getCollectionTopTraders(collectionId: string): Promise<TopTrader[]> {
+  try {
+    const response = await fetch(
+      `https://api.reservoir.tools/collections/${collectionId}/top-traders/v1`,
+      {
+        headers: {
+          'x-api-key': process.env.NEXT_PUBLIC_RESERVOIR_API_KEY || '',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch top traders: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.traders || [];
+  } catch (error) {
+    console.error('Error fetching top traders:', error);
+    return [];
+  }
+}
+
+export const getCollectionBids = async (
+  collectionId: string,
+  limit: number = 20
+): Promise<ReservoirCollectionBidsResponse> => {
+  try {
+    console.log(`Fetching bids for collection ${collectionId}...`);
+    const response = await fetch(
+      `${RESERVOIR_API_BASE}/collections/${collectionId}/bids/v1?limit=${limit}`,
+      {
+        headers: getHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch collection bids: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log(`Successfully fetched ${data.bids?.length || 0} bids for collection ${collectionId}`);
+    return data;
+  } catch (error) {
+    console.error('Error fetching collection bids:', error);
+    return { bids: [] };
+  }
+}; 

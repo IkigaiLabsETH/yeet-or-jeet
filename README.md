@@ -15,31 +15,61 @@ A DeFi trading assistant powered by AI that helps you make informed decisions ab
     - Specifically excludes Berachain stablecoins (NECT, sUSD.e, sUSDa)
   - Fallback to curated token list when APIs are unavailable
 
-- **NFT Collection Analysis**: Analyze NFT collections on Ethereum
-  - View trending collections sorted by 24h volume
-  - Real-time floor price and volume tracking
-  - Collection metadata and statistics
-  - AI-powered market sentiment analysis
-  - Holder distribution insights
-  - Trading pattern recognition
-  - Rarity analysis and valuation
-  - Personalized recommendations based on:
-    - Floor price trends
-    - Volume analysis
-    - Holder behavior
-    - Market sentiment
-    - Collection rarity
-  - Interactive collection grid with:
-    - Collection logos and names
-    - Floor prices in ETH
-    - 24h trading volume
-    - One-click analysis
-  - Comprehensive analysis reports including:
-    - Market signals (Bullish/Neutral/Bearish)
-    - Detailed market analysis
-    - Actionable recommendations
-    - Risk assessment
-    - Historical performance
+- **NFT Collection Analysis**: Advanced NFT analytics powered by Reservoir API
+  - Comprehensive Market Analysis
+    - Real-time floor price tracking
+    - Historical daily volume data
+    - Weekly and monthly volume trends
+    - Trading velocity metrics
+    - Average sale prices
+    - Market cap calculations
+    - Floor bid tracking
+    - Bid-ask spread analysis
+  
+  - Trading Pattern Analysis
+    - Top trader identification and behavior
+    - Whale activity monitoring
+    - Accumulation/distribution patterns
+    - Wash trading detection
+    - Unique buyer/seller metrics
+    - Active bid monitoring
+    - Bidder concentration analysis
+  
+  - Collection Metrics
+    - Holder distribution analysis
+    - Trading consistency tracking
+    - Sales velocity monitoring
+    - Community engagement metrics
+    - Market position assessment
+    - Bid depth analysis
+    - Offer acceptance rates
+  
+  - User Portfolio Analysis
+    - Holdings valuation
+    - Position relative to floor
+    - Historical performance tracking
+    - Rarity analysis
+    - Portfolio optimization suggestions
+    - Active bid opportunities
+    - Bid placement recommendations
+  
+  - Risk Assessment
+    - Market manipulation indicators
+    - Liquidity analysis
+    - Whale concentration metrics
+    - Volume sustainability evaluation
+    - Price movement analysis
+    - Bid validity assessment
+    - Offer quality scoring
+  
+  - Interactive Features
+    - Real-time data updates
+    - Customizable analysis parameters
+    - One-click detailed reports
+    - Historical trend visualization
+    - Price target suggestions
+    - Bid tracking dashboard
+    - Offer management tools
 
 - **Real-time Price Data**: Integrated with multiple data sources for accurate and up-to-date token information
   - GeckoTerminal API as primary data source for comprehensive token information
@@ -192,6 +222,33 @@ The application interacts with OogaBooga's smart contracts using:
 - Dynamic executor contracts for optimal routing
 - Wagmi v2 for blockchain interactions
 - Viem for Ethereum utilities
+
+### Reservoir API Integration (Primary NFT Data Source)
+
+The application leverages Reservoir's comprehensive NFT API suite for detailed collection analysis:
+
+- **Collection Data**
+  - Trending collections discovery
+  - Floor price tracking
+  - Volume analysis
+  - Historical performance data
+  - Market cap calculations
+
+- **Trading Analytics**
+  - Daily volume tracking
+  - Top trader identification
+  - Whale activity monitoring
+  - Market manipulation detection
+  - Trading pattern analysis
+
+- **Market Metrics**
+  - Sales velocity tracking
+  - Unique trader analysis
+  - Price trend monitoring
+  - Liquidity assessment
+  - Volume sustainability metrics
+
+> Note: NFT analysis features require the `NEXT_PUBLIC_RESERVOIR_API_KEY` environment variable to be set
 
 ## Supported Networks
 
