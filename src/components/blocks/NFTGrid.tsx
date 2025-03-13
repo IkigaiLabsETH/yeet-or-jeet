@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
 import Image from "next/image";
+import { getTrendingCollections, type ReservoirCollection } from "@/lib/reservoir";
 
 type NFTCollection = {
   address: string;
@@ -17,60 +18,17 @@ export function NFTGrid({ onCollectionSelect }: { onCollectionSelect: (address: 
     queryKey: ["top-nft-collections"],
     queryFn: async () => {
       try {
-        // Fetch from Cielo API
-        const CIELO_API_BASE = "https://feed-api.cielo.finance/api/v1";
-        const apiKey = process.env.NEXT_PUBLIC_CIELO_API_KEY;
+        const reservoirCollections = await getTrendingCollections(12);
         
-        console.log("Using API Key:", apiKey ? "Present" : "Missing");
-        console.log("Fetching from:", `${CIELO_API_BASE}/nft/trending`);
-        
-        const response = await fetch(`${CIELO_API_BASE}/nft/trending`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'X-API-KEY': apiKey || "",
-            'Origin': typeof window !== 'undefined' ? window.location.origin : '',
-          },
-          mode: 'cors',
-          credentials: 'omit'
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("API Error:", {
-            status: response.status,
-            statusText: response.statusText,
-            body: errorText,
-            headers: Object.fromEntries(response.headers.entries())
-          });
-          throw new Error(`Failed to fetch NFT collections: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log("API Response:", data);
-        
-        if (!data.collections || !Array.isArray(data.collections)) {
-          console.error("Invalid API response format:", data);
-          throw new Error("Invalid API response format");
-        }
-
-        // Mock data for testing if API fails
-        if (data.collections.length === 0) {
-          console.log("No collections found, using mock data");
-          return [
-            {
-              address: "0x1234...",
-              name: "Test Collection",
-              symbol: "TEST",
-              floorPrice: 1.5,
-              totalVolume: 100,
-              imageUrl: null
-            },
-            // Add more mock items as needed
-          ];
-        }
-
-        return data.collections as NFTCollection[];
+        // Map Reservoir data to our NFTCollection type
+        return reservoirCollections.map((collection: ReservoirCollection) => ({
+          address: collection.primaryContract,
+          name: collection.name,
+          symbol: collection.symbol,
+          floorPrice: collection.floorAsk?.price?.amount?.native || 0,
+          totalVolume: collection.volume24h || 0,
+          imageUrl: collection.image,
+        }));
       } catch (err) {
         console.error("Error in NFT collection fetch:", err);
         
