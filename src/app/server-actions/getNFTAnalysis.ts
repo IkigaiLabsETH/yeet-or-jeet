@@ -339,26 +339,98 @@ function calculateTradingMetrics(dailyVolumes: DailyVolume[], topTraders: TopTra
   };
 }
 
-function analyzeBids(bids: ReservoirCollectionBid[]) {
-  const uniqueBidders = new Set(bids.map(bid => bid.maker)).size;
-  const validBids = bids.filter(bid => bid.validUntil > Date.now() / 1000);
-  
-  const bidPrices = validBids.map(bid => bid.price.amount.usd);
-  const distribution = {
-    min: Math.min(...bidPrices) || 0,
-    max: Math.max(...bidPrices) || 0,
-    average: bidPrices.reduce((a, b) => a + b, 0) / bidPrices.length || 0,
-    floorBid: Math.min(...bidPrices) || 0
-  };
-
-  return {
-    uniqueBidders,
-    distribution,
-    averageBidSize: validBids.reduce((acc, bid) => acc + bid.quantityRemaining, 0) / validBids.length || 0,
-    validityAnalysis: {
-      active: validBids.length,
-      expired: bids.length - validBids.length,
-      averageValidityPeriod: validBids.reduce((acc, bid) => acc + (bid.validUntil - bid.validFrom), 0) / validBids.length || 0
+function analyzeBids(bids: ReservoirCollectionBid[] | undefined) {
+  try {
+    // Handle undefined or null bids array
+    if (!bids || !Array.isArray(bids)) {
+      console.warn('No bids data available for analysis');
+      return {
+        uniqueBidders: 0,
+        distribution: {
+          min: 0,
+          max: 0,
+          average: 0,
+          floorBid: 0
+        },
+        averageBidSize: 0,
+        validityAnalysis: {
+          active: 0,
+          expired: 0,
+          averageValidityPeriod: 0
+        }
+      };
     }
-  };
+
+    // Filter out any invalid bid entries
+    const validBidEntries = bids.filter(bid => 
+      bid && 
+      bid.maker && 
+      bid.price?.amount?.usd !== undefined &&
+      bid.validUntil !== undefined &&
+      bid.validFrom !== undefined
+    );
+
+    if (validBidEntries.length === 0) {
+      console.warn('No valid bids found for analysis');
+      return {
+        uniqueBidders: 0,
+        distribution: {
+          min: 0,
+          max: 0,
+          average: 0,
+          floorBid: 0
+        },
+        averageBidSize: 0,
+        validityAnalysis: {
+          active: 0,
+          expired: 0,
+          averageValidityPeriod: 0
+        }
+      };
+    }
+
+    const uniqueBidders = new Set(validBidEntries.map(bid => bid.maker)).size;
+    const currentTime = Date.now() / 1000;
+    const validBids = validBidEntries.filter(bid => bid.validUntil > currentTime);
+    
+    const bidPrices = validBids.map(bid => bid.price.amount.usd);
+    const distribution = {
+      min: bidPrices.length ? Math.min(...bidPrices) : 0,
+      max: bidPrices.length ? Math.max(...bidPrices) : 0,
+      average: bidPrices.length ? bidPrices.reduce((a, b) => a + b, 0) / bidPrices.length : 0,
+      floorBid: bidPrices.length ? Math.min(...bidPrices) : 0
+    };
+
+    return {
+      uniqueBidders,
+      distribution,
+      averageBidSize: validBids.length 
+        ? validBids.reduce((acc, bid) => acc + (bid.quantityRemaining || 0), 0) / validBids.length 
+        : 0,
+      validityAnalysis: {
+        active: validBids.length,
+        expired: validBidEntries.length - validBids.length,
+        averageValidityPeriod: validBids.length
+          ? validBids.reduce((acc, bid) => acc + (bid.validUntil - bid.validFrom), 0) / validBids.length
+          : 0
+      }
+    };
+  } catch (error) {
+    console.error('Error analyzing bids:', error);
+    return {
+      uniqueBidders: 0,
+      distribution: {
+        min: 0,
+        max: 0,
+        average: 0,
+        floorBid: 0
+      },
+      averageBidSize: 0,
+      validityAnalysis: {
+        active: 0,
+        expired: 0,
+        averageValidityPeriod: 0
+      }
+    };
+  }
 } 
