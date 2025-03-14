@@ -21,7 +21,7 @@ export const berachain: Chain = {
       name: "Berascan",
       url: "https://berascan.com"
     },
-  ],
+  ]
 };
 
 export const supportedChains: Chain[] = [berachain, ethereum];
