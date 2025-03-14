@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CURATED_TOKENS, type CuratedToken } from '@/lib/curatedTokens';
+import { CURATED_TOKENS } from '@/lib/curatedTokens';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
