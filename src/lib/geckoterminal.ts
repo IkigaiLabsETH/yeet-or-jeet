@@ -5,7 +5,7 @@ const API_VERSION = "20230302";
 // TODO - remove explicit any, add proper types
 
 const geckoNetworkMap: { [key: number]: string } = {
-  // 1: "ethereum",
+  1: "ethereum",
   // 137: "polygon_pos",
   // 42161: "arbitrum",
   // 10: "optimism",

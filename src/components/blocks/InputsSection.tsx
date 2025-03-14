@@ -111,7 +111,7 @@ export function TokenInfoCard(props: TokenInfo) {
 }
 
 const chainMap: Record<number, string> = {
-  // 1: "ethereum",
+  1: "ethereum",
   // 137: "polygon",
   // 42161: "arbitrum",
   // 10: "optimism",

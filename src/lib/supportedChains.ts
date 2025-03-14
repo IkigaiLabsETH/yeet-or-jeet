@@ -17,7 +17,6 @@ export const berachain: Chain = {
   ],
 };
 
-/* 
 const ethereum: Chain = {
   id: 1,
   rpc: "https://eth.llamarpc.com",
@@ -35,6 +34,7 @@ const ethereum: Chain = {
   ],
 };
 
+/* 
 const polygon: Chain = {
   id: 137,
   rpc: "https://polygon-rpc.com",
@@ -191,8 +191,8 @@ const zksync: Chain = {
 
 export const supportedChains: Chain[] = [
   berachain,
-  /* ethereum,
-  polygon,
+  ethereum,
+  /* polygon,
   arbitrum,
   optimism,
   base,
