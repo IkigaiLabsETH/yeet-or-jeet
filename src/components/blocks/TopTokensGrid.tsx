@@ -43,28 +43,32 @@ export function TopTokensGrid({ onTokenSelect }: { onTokenSelect: (address: stri
       console.log("Received tokens:", tokens);
       return tokens;
     },
-    retry: 3,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30000),
-    refetchInterval: 30000, // Refetch every 30 seconds
-    refetchOnWindowFocus: true,
-    staleTime: 15000, // Consider data stale after 15 seconds
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+    refetchInterval: 60000,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
     select: (data) => {
-      // Additional data validation and transformation
       const validTokens = data?.filter((token: TopToken) => {
-        // Ensure we have the minimum required data
         const isValid = token.address && 
-               token.symbol && 
-               token.name && 
-               typeof token.price_usd !== 'undefined' &&
-               typeof token.volume_24h !== 'undefined';
+               (token.symbol || token.name) &&
+               typeof token.price_usd !== 'undefined';
                
         if (!isValid) {
           console.log("Filtering out invalid token:", token);
         }
         return isValid;
-      });
-      console.log("Valid tokens after filtering:", validTokens);
-      return validTokens;
+      }) || [];
+
+      return validTokens.map(token => ({
+        ...token,
+        name: token.name || token.symbol || "Unknown",
+        symbol: token.symbol || "???",
+        volume_24h: token.volume_24h || 0,
+        price_change_24h: token.price_change_24h || 0,
+        market_cap_usd: token.market_cap_usd || 0,
+        liquidity_usd: token.liquidity_usd || 0
+      }));
     }
   });
 
