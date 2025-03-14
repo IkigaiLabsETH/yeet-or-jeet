@@ -19,20 +19,13 @@ interface CollectionStats {
   imageUrl: string | null;
   winRate?: number;
   pnl?: number;
+  profitFactor?: number;
+  averageTradeValue?: number;
+  totalTrades?: number;
 }
 
 interface CuratedNFTsGridProps {
   onCollectionSelect: (address: string) => void;
-}
-
-interface CieloTrade {
-  chain: string;
-  usdValue: number;
-  profit: number;
-}
-
-interface CieloFeedResponse {
-  trades: CieloTrade[];
 }
 
 export function CuratedNFTsGrid({ onCollectionSelect }: CuratedNFTsGridProps) {
@@ -233,6 +226,22 @@ export function CuratedNFTsGrid({ onCollectionSelect }: CuratedNFTsGridProps) {
                   <p className="text-muted-foreground">P&L</p>
                   <p className="font-medium">
                     {formatNumber(collectionStats[nft.address].pnl ?? 0)} ETH
+                  </p>
+                </div>
+              )}
+              {collectionStats?.[nft.address]?.profitFactor !== undefined && (
+                <div>
+                  <p className="text-muted-foreground">Profit Factor</p>
+                  <p className="font-medium">
+                    {formatNumber(collectionStats[nft.address].profitFactor ?? 0)}x
+                  </p>
+                </div>
+              )}
+              {collectionStats?.[nft.address]?.totalTrades !== undefined && (
+                <div className="text-right">
+                  <p className="text-muted-foreground">Total Trades</p>
+                  <p className="font-medium">
+                    {formatNumber(collectionStats[nft.address].totalTrades ?? 0)}
                   </p>
                 </div>
               )}

@@ -47,6 +47,15 @@ interface CieloFeedResponse {
 interface CieloFeedStats {
   winRate: number;
   pnl: number;
+  totalTrades: number;
+  averageTradeValue: number;
+  largestTrade: number;
+  profitableTrades: number;
+  lossMakingTrades: number;
+  averageProfitPerTrade: number;
+  averageLossPerTrade: number;
+  totalVolume: number;
+  profitFactor: number;
 }
 
 const CIELO_API_KEY = process.env.CIELO_API_KEY;
@@ -290,15 +299,49 @@ export async function getFeedStats(): Promise<CieloFeedStats | null> {
     const trades = data.trades || [];
     const ethTrades = trades.filter(trade => trade.chain === 'ethereum');
     
-    // Calculate basic stats from trades
-    const totalValue = ethTrades.reduce((sum, trade) => sum + (trade.usdValue || 0), 0);
+    // Basic trade stats
+    const totalTrades = ethTrades.length;
     const profitableTrades = ethTrades.filter(trade => trade.profit > 0);
-    const winRate = ethTrades.length > 0 ? (profitableTrades.length / ethTrades.length) * 100 : 0;
-    const pnl = ethTrades.reduce((sum, trade) => sum + (trade.profit || 0), 0);
+    const lossMakingTrades = ethTrades.filter(trade => trade.profit < 0);
+    
+    // Calculate win rate
+    const winRate = totalTrades > 0 ? (profitableTrades.length / totalTrades) * 100 : 0;
+    
+    // Calculate volume and trade values
+    const totalVolume = ethTrades.reduce((sum, trade) => sum + (trade.usdValue || 0), 0);
+    const averageTradeValue = totalTrades > 0 ? totalVolume / totalTrades : 0;
+    const largestTrade = Math.max(...ethTrades.map(trade => trade.usdValue || 0));
+    
+    // Calculate profit metrics
+    const totalProfit = profitableTrades.reduce((sum, trade) => sum + (trade.profit || 0), 0);
+    const totalLoss = lossMakingTrades.reduce((sum, trade) => sum + (trade.profit || 0), 0);
+    const pnl = totalProfit + totalLoss;
+    
+    // Calculate average profit/loss per trade
+    const averageProfitPerTrade = profitableTrades.length > 0 
+      ? totalProfit / profitableTrades.length 
+      : 0;
+    const averageLossPerTrade = lossMakingTrades.length > 0 
+      ? Math.abs(totalLoss / lossMakingTrades.length)
+      : 0;
+    
+    // Calculate profit factor (ratio of profits to losses)
+    const profitFactor = Math.abs(totalLoss) > 0 
+      ? Math.abs(totalProfit / totalLoss) 
+      : totalProfit > 0 ? Infinity : 0;
 
     return {
       winRate,
-      pnl
+      pnl,
+      totalTrades,
+      averageTradeValue,
+      largestTrade,
+      profitableTrades: profitableTrades.length,
+      lossMakingTrades: lossMakingTrades.length,
+      averageProfitPerTrade,
+      averageLossPerTrade,
+      totalVolume,
+      profitFactor
     };
   } catch (error) {
     console.error("Error fetching feed stats:", error);
