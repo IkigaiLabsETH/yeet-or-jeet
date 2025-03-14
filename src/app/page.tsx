@@ -344,7 +344,6 @@ function ResponseScreen(props: {
                info?.dexScreenerData?.volume_24h?.toString() || 
                "0"),
             chain: props.chain,
-            imageUrl: info?.geckoTerminalData?.data?.attributes?.image_url,
           }}
           walletInfo={{
             address: props.walletAddress || "0x0000000000000000000000000000000000000000",
