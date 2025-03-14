@@ -9,6 +9,12 @@ export const berachain: Chain = {
     decimals: 18,
   },
   name: "Berachain",
+  icon: {
+    url: "https://raw.githubusercontent.com/berachain/assets/main/chain-logos/berachain.svg",
+    height: 32,
+    width: 32,
+    format: "svg"
+  },
   blockExplorers: [
     {
       name: "Berascan",
@@ -26,6 +32,12 @@ const ethereum: Chain = {
     decimals: 18,
   },
   name: "Ethereum",
+  icon: {
+    url: "https://raw.githubusercontent.com/ethereum/ethereum-org-website/master/src/assets/eth-logo.svg",
+    height: 32,
+    width: 32,
+    format: "svg"
+  },
   blockExplorers: [
     {
       name: "Etherscan",
