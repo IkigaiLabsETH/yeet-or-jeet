@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { getTokenAnalysis } from "./server-actions/getTokenAnalysis";
 import { type Chain } from "thirdweb";
 import { useActiveAccount } from "thirdweb/react";
-
 import { Button } from "@/components/ui/button";
 import { CustomizedConnectButton } from "../components/blocks/CustomConnectButton";
 import { defaultSelectedChain, supportedChains } from "../lib/supportedChains";
