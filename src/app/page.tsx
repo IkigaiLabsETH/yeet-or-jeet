@@ -17,6 +17,7 @@ import { ChevronLeft } from "lucide-react";
 import { TopTokensGrid } from "../components/blocks/TopTokensGrid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CuratedTokensGrid } from "../components/blocks/CuratedTokensGrid";
+import { gatherStartingData, type StartingData } from "../lib/helpers/info";
 
 type NebulaTxData = {
   chainId: number;
@@ -177,6 +178,24 @@ function ResponseScreen(props: {
   walletAddress: string;
   onBack: () => void;
 }) {
+  const [info, setInfo] = useState<StartingData | undefined>();
+
+  useEffect(() => {
+    const fetchInfo = async () => {
+      try {
+        const data = await gatherStartingData(
+          props.chain.id,
+          props.tokenAddress,
+          props.walletAddress,
+        );
+        setInfo(data);
+      } catch (error) {
+        console.error("Error fetching token info:", error);
+      }
+    };
+    fetchInfo();
+  }, [props.chain.id, props.tokenAddress, props.walletAddress]);
+
   const analysisQuery = useQuery({
     queryKey: [
       "response",
@@ -268,10 +287,18 @@ function ResponseScreen(props: {
         <InputsSection
           tokenInfo={{
             address: props.tokenAddress,
-            priceUSD: verdictSection?.tokenInfo?.price || "0.00",
-            marketCapUSD: verdictSection?.tokenInfo?.marketCap || "0",
-            volumeUSD: verdictSection?.tokenInfo?.marketCap ? 
-              (parseFloat(verdictSection.tokenInfo.marketCap) * 0.05).toString() : "0",
+            priceUSD: verdictSection?.tokenInfo?.price || 
+              (info?.geckoTerminalData?.data?.attributes?.price_usd || 
+               info?.dexScreenerData?.price_usd || 
+               "0.00"),
+            marketCapUSD: verdictSection?.tokenInfo?.marketCap || 
+              (info?.geckoTerminalData?.data?.attributes?.market_cap_usd || 
+               info?.dexScreenerData?.market_cap_usd?.toString() || 
+               "0"),
+            volumeUSD: verdictSection?.tokenInfo?.marketCap || 
+              (info?.geckoTerminalData?.data?.attributes?.volume_usd?.h24 || 
+               info?.dexScreenerData?.volume_24h?.toString() || 
+               "0"),
             chain: props.chain,
           }}
           walletInfo={{
