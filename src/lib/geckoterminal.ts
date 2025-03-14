@@ -425,7 +425,7 @@ export async function getTopTokens(): Promise<TopToken[]> {
     
     // First try to get pools data which includes most recent prices
     console.log("Fetching pools data from Berachain");
-    const poolsData = await fetchGeckoTerminal("/networks/berachain/pools?page=1&page_size=100");
+    const poolsData = await fetchGeckoTerminal("/networks/berachain/pools?page=1&page_size=250");
     
     if (!poolsData?.data) {
       console.error("Failed to fetch pools data");
@@ -590,7 +590,8 @@ export async function getTopTokens(): Promise<TopToken[]> {
         console.log(`Keeping priority token: ${token.symbol}`);
         return true;
       }
-      const hasEnoughVolume = token.volume_24h >= 100000;
+      // Lower volume threshold to $10K to show more tokens
+      const hasEnoughVolume = token.volume_24h >= 10000;
       if (!hasEnoughVolume) {
         console.log(`Filtering out low volume token: ${token.symbol} (${token.volume_24h})`);
       }
@@ -604,11 +605,10 @@ export async function getTopTokens(): Promise<TopToken[]> {
     });
 
     console.log(`Total tokens after filtering: ${tokens.length}`);
-
-    // Take top 12 tokens
-    const result = tokens.slice(0, 12);
-    console.log(`Returning ${result.length} tokens (including priority tokens)`);
-    return result;
+    
+    // Return all tokens instead of limiting to 12
+    console.log(`Returning ${tokens.length} tokens (including priority tokens)`);
+    return tokens;
 
   } catch (error) {
     console.error("Error fetching real-time token data:", error);
