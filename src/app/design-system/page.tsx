@@ -3,7 +3,7 @@
 import { SourcesSection } from "@/components/blocks/SourcesSection";
 import { InputsSection } from "../../components/blocks/InputsSection";
 import { TokenInputSection } from "../../components/blocks/TokenInputSection";
-// import { Loading } from "../../components/blocks/Loading";
+import { Loading } from "../../components/blocks/Loading";
 import { berachain } from "../../lib/supportedChains";
 import { TradeSummarySection } from "../../components/blocks/TradeSummarySection/TradeSummarySection";
 import { MarkdownRenderer } from "../../components/blocks/markdown-renderer";
