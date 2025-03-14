@@ -357,13 +357,7 @@ function isStablecoin(symbol: string, address?: string): boolean {
   
   // Expanded list of stablecoins and their variations
   const stablecoins = [
-    'USDT', 'USDC', 'DAI', 'BUSD', 'TUSD', 'USDP', 'FRAX', 'LUSD', 'USDD', 'GUSD', 'USDJ',
-    'UST', 'USDB', 'USDK', 'USDX', 'SUSD', 'CUSD', 'MUSD', 'DUSD', 'HUSD', 'OUSD',
-    'USDN', 'USDH', 'USDL', 'USDR', 'USDV', 'USDW', 'USDY', 'USDZ',
-    'EURT', 'EURS', 'EUROC', 'EURU', 'JEUR', 'SEUR',
-    'CADC', 'XSGD', 'XIDR', 'NZDS', 'TRYB', 'BIDR', 'BRLC', 'CNHT', 'IDRT', 'KRWB',
-    'MIM', 'USDM', 'USDS', 'USDE', 'USDEX', 'USDFL', 'USDQ', 'USDG', 'USDTG',
-    'NECT', 'SUSD.E', 'SUSDA', 'HONEY', 'MOOLA' // Add MOOLA to the list of tokens to exclude
+    'NECT', 'HONEY', 'MOOLA' // Add MOOLA to the list of tokens to exclude
   ];
   
   // Check if the symbol contains any of the stablecoin identifiers

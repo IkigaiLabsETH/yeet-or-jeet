@@ -15,6 +15,8 @@ import { TradeSummarySection } from "../components/blocks/TradeSummarySection/Tr
 import { MarkdownRenderer } from "../components/blocks/markdown-renderer";
 import { ChevronLeft } from "lucide-react";
 import { TopTokensGrid } from "../components/blocks/TopTokensGrid";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CuratedTokensGrid } from "../components/blocks/CuratedTokensGrid";
 
 type NebulaTxData = {
   chainId: number;
@@ -123,30 +125,46 @@ function LandingPageScreen(props: {
       </div>
 
       <div className="space-y-8">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-tight">Top Trading Tokens</h2>
-              <p className="text-muted-foreground mt-1">Highest 24h volume on Berachain</p>
-            </div>
-            {account && (
-              <p className="text-sm text-muted-foreground">
-                Click token to analyze it
-              </p>
-            )}
-          </div>
-        </div>
-        
         {!account ? (
           <div className="rounded-xl border-2 border-dashed p-8 text-center">
             <p className="text-muted-foreground">Connect your wallet to analyze tokens</p>
           </div>
         ) : (
-          <TopTokensGrid 
-            onTokenSelect={(address) => {
-              props.onSubmit({ tokenAddress: address });
-            }} 
-          />
+          <Tabs defaultValue="top" className="space-y-8">
+            <div className="flex items-center justify-between">
+              <TabsList>
+                <TabsTrigger value="top">Top Tokens</TabsTrigger>
+                <TabsTrigger value="curated">Curated List</TabsTrigger>
+              </TabsList>
+              <p className="text-sm text-muted-foreground">
+                Click token to analyze it
+              </p>
+            </div>
+
+            <TabsContent value="top" className="space-y-4">
+              <div>
+                <h2 className="text-2xl font-semibold tracking-tight">Top Trading Tokens</h2>
+                <p className="text-muted-foreground mt-1">Highest 24h volume on Berachain</p>
+              </div>
+              <TopTokensGrid 
+                onTokenSelect={(address) => {
+                  props.onSubmit({ tokenAddress: address });
+                }} 
+              />
+            </TabsContent>
+
+            <TabsContent value="curated" className="space-y-4">
+              <div>
+                <h2 className="text-2xl font-semibold tracking-tight">Curated Token List</h2>
+                <p className="text-muted-foreground mt-1">Hand-picked tokens on Berachain</p>
+              </div>
+              <CuratedTokensGrid 
+                onTokenSelect={(address) => {
+                  props.onSubmit({ tokenAddress: address });
+                }}
+              />
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </main>
