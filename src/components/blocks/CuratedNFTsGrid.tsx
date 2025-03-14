@@ -4,8 +4,6 @@ import { CURATED_NFTS, getCollectionIdentifier } from '@/lib/curatedNFTs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/components/ui/use-toast';
 import Image from "next/image";
 import { formatNumber } from "@/lib/utils";
 
@@ -23,7 +21,6 @@ interface CuratedNFTsGridProps {
 
 export function CuratedNFTsGrid({ onCollectionSelect }: CuratedNFTsGridProps) {
   const [selectedCategory, setSelectedCategory] = useState<typeof CATEGORIES[number]>('All');
-  const { toast } = useToast();
 
   const { data: collectionStats, isLoading, error, refetch } = useQuery({
     queryKey: ["curated-nft-collections"],
