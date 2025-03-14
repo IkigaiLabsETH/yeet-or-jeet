@@ -2,11 +2,22 @@ export interface CuratedNFT {
   address: string;
   name: string;
   symbol: string;
-  description: string;
   category: 'Gen Art' | 'AI' | 'Icons' | 'Photography';
-  logoUrl?: string;
-  floorPrice?: string;
-  totalVolume?: string;
+  collectionId?: string; // For shared contract collections (e.g. OpenSea)
+  tokenRange?: {
+    start: number;
+    end: number;
+  }; // For Art Blocks style collections
+}
+
+export function getCollectionIdentifier(nft: CuratedNFT): string {
+  if (nft.tokenRange) {
+    return `${nft.address}:${nft.tokenRange.start}:${nft.tokenRange.end}`;
+  }
+  if (nft.collectionId) {
+    return `${nft.address}:${nft.collectionId}`;
+  }
+  return nft.address;
 }
 
 export const CURATED_NFTS: CuratedNFT[] = [
@@ -14,90 +25,118 @@ export const CURATED_NFTS: CuratedNFT[] = [
     address: "0xd0b67acc0e5918192b158c1647dad5782e6f4fb5",
     name: "Guy Bourdin",
     symbol: "GUY",
-    description: "Art Blocks is a first-of-its-kind platform focused on genuinely programmable on-demand generative content that is stored immutably on the Ethereum blockchain.",
-    category: "Photography",
-    floorPrice: "0.22",
-    totalVolume: "650000"
+    category: "Photography"
   },
   {
-    address: "0x059edd72cd353df5106d2b9cc5ab83a52287ac3a:0:999999",
+    address: "0x059edd72cd353df5106d2b9cc5ab83a52287ac3a",
     name: "Chromie Squiggle",
     symbol: "SQUIGGLE",
-    description: "A generative art project by Snowfro, founder of Art Blocks. Each squiggle is randomly generated and stored on-chain.",
-    category: "Gen Art",
-    floorPrice: "8.75",
-    totalVolume: "45000"
+    category: "Gen Art"
   },
   {
-    address: "0x42069ABFE407C60cf4ae4112bEDEaD391dBa1cdB",
+    address: "0xa7d8d9ef8d8ce8992df33d8b8cf4aebabd5bd270",
     name: "Ringers",
     symbol: "RINGERS",
-    description: "A generative art collection by Dmitri Cherniak, exploring the endless possibilities of wrapping strings around pegs.",
     category: "Gen Art",
-    floorPrice: "35.5",
-    totalVolume: "28000"
+    tokenRange: {
+      start: 53000000,
+      end: 53999999
+    }
   },
   {
-    address: "0x8BFd726edc4e0d0C3c14Bb1e02CC5F8EE4d6B56D",
-    name: "DeepBlue AI",
-    symbol: "DEEP",
-    description: "AI-generated artwork collection exploring the intersection of human creativity and machine learning.",
-    category: "AI",
-    floorPrice: "1.25",
-    totalVolume: "15000"
+    address: "0x495f947276749ce646f68ac8c248420045cb7b5e",
+    name: "MeeBits",
+    symbol: "MEET",
+    category: "Icons",
+    collectionId: "meebits-official"
   },
   {
-    address: "0x394E3d3044fC89fCDd966D3cb35Ac0B32B0Cda91",
-    name: "Archetype",
-    symbol: "ARCH",
-    description: "AI-powered collection that transforms text prompts into unique digital artworks.",
-    category: "AI",
-    floorPrice: "0.85",
-    totalVolume: "12000"
+    address: "0x9cf0ab1cc434db83097b7e9c831a764481dec747",
+    name: "alignDRAW",
+    symbol: "DRAW",
+    category: "AI"
   },
   {
     address: "0x7Bd29408f11D2bFC23c34f18275bBf23bB716Bc7",
     name: "Mirage Gallery",
     symbol: "MIRAGE",
-    description: "A curated collection of AI-generated fine art pieces, bridging the gap between traditional art and artificial intelligence.",
+    category: "AI"
+  },
+  {
+    address: "0x4d928ab507bf633dd8e68024a1fb4c99316bbdf3",
+    name: "Love Tennis",
+    symbol: "LOVE",
+    category: "Gen Art"
+  },
+  {
+    address: "0x845dd2a7ee2a92a0518ab2135365ed63fdba0c88",
+    name: "QQL",
+    symbol: "QQL",
+    category: "Gen Art"
+  },
+  {
+    address: "0x880af717abba38f31ca21673843636a355fb45f3",
+    name: "Drip Drop",
+    symbol: "DRIP",
+    category: "Photography"
+  },
+  {
+    address: "0x509a050f573be0d5e01a73c3726e17161729558b",
+    name: "Where My Vans Go",
+    symbol: "VANS",
+    category: "Photography"
+  },
+  {
+    address: "0xdfde78d2baec499fe18f2be74b6c287eed9511d7",
+    name: "Life In West America",
+    symbol: "LIWA",
+    category: "Gen Art",
+    tokenRange: {
+      start: 15000000,
+      end: 15999999
+    }
+  },
+  {
+    address: "0xf95b19c4a2e8564dfd26a594992d9a6aa984ed47",
+    name: "Machine Hallucinations — NYC",
+    symbol: "MHNYC",
+    category: "AI"
+  },
+  {
+    address: "0x75d639e5e52b4ea5426f2fb46959b9c3099b729a",
+    name: "Metascapes",
+    symbol: "META",
+    category: "Gen Art"
+  },
+  {
+    address: "0xaa4bc994775a0d19ff1c01310191df6521af12dd",
+    name: "SIGHTSEERS - PERIMETER TOWN",
+    symbol: "SIGHT",
+    category: "Gen Art"
+  },
+  {
+    address: "0x9d6c8e4b348999a69ee24285cd81226f4628e8f8",
+    name: "Unsupervised - Burned - Machine Hallucinations - MoMA Dreams",
+    symbol: "UNMH",
+    category: "AI"
+  },
+  {
+    address: "0x747c47c05db872938ec17d6935f8f1dcba129399",
+    name: "Pink. Unidentified. Such a Useless Color!",
+    symbol: "PINK",
+    category: "Gen Art"
+  },
+  {
+    address: "0xc8a75cfe4a0b9362ff2e201f960549e875b10e2d",
+    name: "Singularity",
+    symbol: "SING",
+    category: "AI"
+  },
+  {
+    address: "0x7a15b36cb834aea88553de69077d3777460d73ac",
+    name: "Unsupervised — Data Universe — MoMA",
+    symbol: "UDUM",
     category: "AI",
-    floorPrice: "0.45",
-    totalVolume: "8500"
-  },
-  {
-    address: "0x8d04a8c79cEB0889Bdd12acdF3Fa9D207eD3Ff63",
-    name: "Iconic Moments",
-    symbol: "ICONIC",
-    description: "A collection of iconic cultural moments transformed into minimalist digital icons.",
-    category: "Icons",
-    floorPrice: "0.35",
-    totalVolume: "5500"
-  },
-  {
-    address: "0x892848074ddeA461A15f337250Da3ce55580CA85",
-    name: "Minimal Icons",
-    symbol: "MINIMAL",
-    description: "Simple, elegant, and timeless icon designs representing various aspects of digital culture.",
-    category: "Icons",
-    floorPrice: "0.15",
-    totalVolume: "3200"
-  },
-  {
-    address: "0x3B3ee1931Dc30C1957379FAc9aba94D1C48a5405",
-    name: "Twin Flames",
-    symbol: "TWIN",
-    description: "Justin Aversano's groundbreaking photography project capturing 100 sets of twins in powerful portraits.",
-    category: "Photography",
-    floorPrice: "15.75",
-    totalVolume: "85000"
-  },
-  {
-    address: "0xd539A3A5E5210Ea5Aa8F7Dac205Ad84E13660775",
-    name: "Drifters",
-    symbol: "DRIFT",
-    description: "A photographic journey through urban landscapes and street culture, captured by renowned photographers.",
-    category: "Photography",
-    floorPrice: "0.85",
-    totalVolume: "12500"
+    collectionId: "opensea-unsupervised-data-universe-moma-by-refik-anadol"
   }
 ]; 

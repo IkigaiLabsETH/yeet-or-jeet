@@ -5,7 +5,7 @@ import { CustomizedConnectButton } from "../components/blocks/CustomConnectButto
 import { ThemeToggleButton } from "../components/blocks/toggle-theme";
 import Link from "next/link";
 import { Providers } from "../components/providers/Providers";
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
