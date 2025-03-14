@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "the b/era, berachain token analyzer",
+  title: "the b/era, berachain token analyzer, FAFO, FUCK AROUND FIND OUT",
   description: "Click any berachain token to analyze it with AI",
 };
 
@@ -40,7 +40,7 @@ export default function RootLayout({
                 className="text-3xl font-extrabold tracking-tight flex items-center gap-1.5"
                 href="/"
               >
-                BMBM
+                FAFO
               </Link>
 
               <div className="flex items-center gap-3">
@@ -59,7 +59,7 @@ export default function RootLayout({
                 href="https://livethelife.tv/"
                 target="_blank"
               >
-                Powered by LIVETHELIFE.TV
+                FUCK AROUND FIND OUT - FAFO- Powered by LIVETHELIFE.TV
               </Link>
             </div>
           </footer>
