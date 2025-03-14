@@ -172,7 +172,7 @@ export async function getTokenPnL(
             symbol: "BERA",
             decimals: 18,
           },
-          rpc: "https://rpc.berachain.com",
+          rpc: "https://80094.rpc.thirdweb.com/",
         },
         tokenAddress,
       });
