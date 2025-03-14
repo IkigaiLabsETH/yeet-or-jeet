@@ -2,7 +2,7 @@ const DEXSCREENER_BASE_URL = "https://api.dexscreener.com/latest/dex";
 
 // Add this constant near the top of the file
 const PRIORITY_TOKENS = new Set([
-  '0x7838cec5b11298ff6a9513fa385621b765c74174',  // BERA
+  '0x7838cec5b11298ff6a9513fa385621b765c74174',  // BER0
   '0x36e9fe653e673fda3857dbe5afbc884af8a316a2',  // HONEY
   '0x8f06863df59a042bcc2c86cc8ca1709ec1ee316b',  // STGBERA
   '0xa452810a4215fccc834ed241e6667f519b9856ec',  // BRGB
