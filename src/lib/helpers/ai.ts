@@ -251,6 +251,7 @@ export async function synthesizeResponses(
   nebulaResponse: string,
   perplexityResponse: string,
 ): Promise<string | undefined> {
+  // Get wallet and token stats
   const walletStats = await getWalletStats(
     startingData.userWalletAddress,
     getChainName(startingData.chainId),
@@ -265,10 +266,12 @@ export async function synthesizeResponses(
   if (walletStats) {
     walletContext = `
 Wallet Performance:
-- Overall win rate: ${walletStats.winrate}%
+- Overall win rate: ${walletStats.winrate.toFixed(1)}%
 - Total PnL: $${walletStats.combined_pnl_usd.toFixed(2)}
 - Tokens traded: ${walletStats.tokens_traded}
 - Average holding time: ${walletStats.average_holding_time.toFixed(1)} days
+- Realized PnL: $${walletStats.realized_pnl_usd.toFixed(2)} (${walletStats.realized_roi_percentage.toFixed(1)}% ROI)
+- Unrealized PnL: $${walletStats.unrealized_pnl_usd.toFixed(2)} (${walletStats.unrealized_roi_percentage.toFixed(1)}% ROI)
 `;
   }
 
@@ -276,6 +279,8 @@ Wallet Performance:
   if (tokenPnL) {
     const hasPosition = tokenPnL.total_buy_usd > tokenPnL.total_sell_usd;
     const currentPosition = tokenPnL.total_buy_usd - tokenPnL.total_sell_usd;
+    const avgHoldingTime = (tokenPnL.last_trade - tokenPnL.first_trade) / (24 * 60 * 60); // Convert seconds to days
+
     tokenContext = `
 Token-Specific Performance:
 - Current Position: ${hasPosition ? `ACTIVE - $${currentPosition.toFixed(2)}` : "NO POSITION"}
@@ -287,6 +292,7 @@ Token-Specific Performance:
 - Average sell price: $${tokenPnL.average_sell_price.toFixed(6)}
 - First trade: ${new Date(tokenPnL.first_trade * 1000).toLocaleDateString()}
 - Last trade: ${new Date(tokenPnL.last_trade * 1000).toLocaleDateString()}
+- Average holding time: ${avgHoldingTime.toFixed(1)} days
 - Is Honeypot: ${tokenPnL.is_honeypot ? "⚠️ YES" : "No"}
 `;
   }

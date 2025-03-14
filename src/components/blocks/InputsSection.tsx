@@ -191,13 +191,13 @@ export function WalletInfoCard(props: WalletInfo) {
             <p className="font-medium text-base">{formattedBalance}</p>
           </div>
 
-          {/* Row 2 */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          {/* Row 2 - Trading Stats */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
             <div className="flex items-center gap-1">
               <span className="font-medium">Win Rate:</span>
               {walletStatsQuery.data ? (
                 <span className={walletStatsQuery.data.winrate >= 50 ? "text-green-500" : "text-red-500"}>
-                  {walletStatsQuery.data.winrate}%
+                  {walletStatsQuery.data.winrate.toFixed(1)}%
                 </span>
               ) : (
                 <span className="text-muted-foreground">--</span>
@@ -214,6 +214,22 @@ export function WalletInfoCard(props: WalletInfo) {
                     maximumFractionDigits: 2,
                   })}
                 </span>
+              ) : (
+                <span className="text-muted-foreground">--</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-medium">Tokens:</span>
+              {walletStatsQuery.data ? (
+                <span>{walletStatsQuery.data.tokens_traded}</span>
+              ) : (
+                <span className="text-muted-foreground">--</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-medium">Avg Hold:</span>
+              {walletStatsQuery.data ? (
+                <span>{walletStatsQuery.data.average_holding_time.toFixed(1)}d</span>
               ) : (
                 <span className="text-muted-foreground">--</span>
               )}
