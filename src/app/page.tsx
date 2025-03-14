@@ -440,23 +440,49 @@ function ResponseScreen(props: {
                   <div className="prose prose-lg dark:prose-invert max-w-none">
                     <div className="space-y-8">
                       <MarkdownRenderer 
-                        markdownText={(detailsSection.content || '').split('\n').map((line) => {
-                          // Remove any existing markdown headers
-                          line = line.replace(/^#+\s*/, '');
+                        markdownText={(() => {
+                          const content = detailsSection.content || '';
                           
-                          // Add proper markdown headers for sections
-                          if (line.includes('Market Analysis')) {
-                            return `## ${line}`;
-                          } else if (line.includes('Liquidity Analysis') || 
-                                   line.includes('Technical Indicators') ||
-                                   line.includes('Strengths') ||
-                                   line.includes('Risk Factors') ||
-                                   line.includes('Strategy Rationale') ||
-                                   line.includes('Key Metrics')) {
-                            return `\n## ${line}`;
-                          }
-                          return line;
-                        }).join('\n')} 
+                          // Split content into sections based on common delimiters
+                          const sections = content.split(/(?=🌟|📊|💧|📈|💪|⚠️|📝|🎯|📌|Market Analysis|Liquidity Analysis|Technical Indicators|Strengths|Risk Factors|Strategy Rationale|Key Metrics|Volume Analysis|Project Fundamentals|Price History|Entry Strategy|Catalysts)/g);
+                          
+                          // Process each section
+                          return sections.map(section => {
+                            // Clean up the section
+                            section = section.trim();
+                            
+                            // Skip empty sections
+                            if (!section) return '';
+                            
+                            // Add proper markdown headers for known sections
+                            if (
+                              section.includes('Market Analysis') ||
+                              section.includes('Market Position') ||
+                              section.includes('Liquidity Analysis') ||
+                              section.includes('Technical Indicators') ||
+                              section.includes('Strengths') ||
+                              section.includes('Risk Factors') ||
+                              section.includes('Strategy Rationale') ||
+                              section.includes('Key Metrics') ||
+                              section.includes('Volume Analysis') ||
+                              section.includes('Project Fundamentals') ||
+                              section.includes('Price History') ||
+                              section.includes('Entry Strategy') ||
+                              section.includes('Catalysts')
+                            ) {
+                              return `\n## ${section}`;
+                            }
+                            
+                            // Handle bullet points and dashes
+                            return section.split('\n').map(line => {
+                              // Convert dashes to bullet points if they're not already
+                              if (line.trim().startsWith('-') && !line.trim().startsWith('- ')) {
+                                return line.replace(/^-/, '- ');
+                              }
+                              return line;
+                            }).join('\n');
+                          }).join('\n\n');
+                        })()} 
                         skipHtml={true}
                       />
                     </div>
