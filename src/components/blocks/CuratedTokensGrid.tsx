@@ -14,14 +14,20 @@ import {
   TwitterIcon,
   GlobeIcon,
   MessageCircleIcon,
-  DropletIcon
+  DropletIcon,
+  AlertCircleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  SearchIcon
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { Input } from "../ui/input";
 
 const CATEGORIES = ['All', 'DeFi', 'Gaming', 'Infrastructure', 'Meme', 'Ecosystem'] as const;
 const berachain = supportedChains.find((chain) => chain.id === 80094)!;
+const TOKENS_PER_PAGE = 12;
 
 interface CuratedTokensGridProps {
   onTokenSelect: (address: string) => void;
@@ -31,10 +37,26 @@ export function CuratedTokensGrid({ onTokenSelect }: CuratedTokensGridProps) {
   const [selectedCategory, setSelectedCategory] = useState<typeof CATEGORIES[number]>('All');
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredTokens = CURATED_TOKENS.filter(token => 
-    selectedCategory === 'All' || token.category === selectedCategory
-  );
+  // Filter tokens based on category and search query
+  const filteredTokens = CURATED_TOKENS.filter(token => {
+    const matchesCategory = selectedCategory === 'All' || token.category === selectedCategory;
+    if (!matchesCategory) return false;
+    
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return token.name.toLowerCase().includes(query) || 
+           token.symbol.toLowerCase().includes(query) ||
+           token.address.toLowerCase().includes(query);
+  });
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredTokens.length / TOKENS_PER_PAGE);
+  const startIndex = (currentPage - 1) * TOKENS_PER_PAGE;
+  const endIndex = startIndex + TOKENS_PER_PAGE;
+  const currentTokens = filteredTokens.slice(startIndex, endIndex);
 
   const handleCopy = async (address: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -62,23 +84,109 @@ export function CuratedTokensGrid({ onTokenSelect }: CuratedTokensGridProps) {
     });
   };
 
+  if (!filteredTokens.length) {
+    return (
+      <div className="space-y-4">
+        {/* Category Filters */}
+        <div className="flex flex-wrap gap-2">
+          {CATEGORIES.map((category) => (
+            <Button
+              key={category}
+              variant={selectedCategory === category ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                setSelectedCategory(category);
+                setCurrentPage(1); // Reset to first page on category change
+              }}
+            >
+              {category}
+            </Button>
+          ))}
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search by name, symbol, or address..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1); // Reset to first page on search
+            }}
+            className="pl-9"
+          />
+        </div>
+
+        <div className="text-muted-foreground p-8 border border-border bg-card/50 rounded-xl flex flex-col items-center justify-center text-center">
+          <AlertCircleIcon className="size-12 mb-4 opacity-60" />
+          <h3 className="text-lg font-semibold mb-2">No Tokens Found</h3>
+          <p className="mb-4">
+            {searchQuery 
+              ? `No tokens match your search "${searchQuery}"`
+              : `No tokens found in the ${selectedCategory} category.`}
+          </p>
+          <div className="flex gap-2">
+            {searchQuery && (
+              <Button 
+                variant="outline" 
+                onClick={() => setSearchQuery("")}
+              >
+                Clear Search
+              </Button>
+            )}
+            {selectedCategory !== 'All' && (
+              <Button 
+                variant="outline" 
+                onClick={() => setSelectedCategory('All')}
+              >
+                Show All Categories
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Category Filters */}
       <div className="flex flex-wrap gap-2">
         {CATEGORIES.map((category) => (
           <Button
             key={category}
             variant={selectedCategory === category ? "default" : "outline"}
             size="sm"
-            onClick={() => setSelectedCategory(category)}
+            onClick={() => {
+              setSelectedCategory(category);
+              setCurrentPage(1); // Reset to first page on category change
+            }}
           >
             {category}
           </Button>
         ))}
       </div>
 
+      {/* Search Bar */}
+      <div className="relative">
+        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="Search by name, symbol, or address..."
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setCurrentPage(1); // Reset to first page on search
+          }}
+          className="pl-9"
+        />
+      </div>
+
+      {/* Token Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredTokens.map((token) => (
+        {currentTokens.map((token) => (
           <TokenProvider
             key={token.address}
             address={token.address}
@@ -314,6 +422,36 @@ export function CuratedTokensGrid({ onTokenSelect }: CuratedTokensGridProps) {
           </TokenProvider>
         ))}
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t pt-4 mt-4">
+          <div className="text-sm text-muted-foreground">
+            Showing {startIndex + 1}-{Math.min(endIndex, filteredTokens.length)} of {filteredTokens.length} tokens
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeftIcon className="size-4" />
+            </Button>
+            <div className="text-sm">
+              Page {currentPage} of {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronRightIcon className="size-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
