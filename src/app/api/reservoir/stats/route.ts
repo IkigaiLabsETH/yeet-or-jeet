@@ -2,11 +2,8 @@ import { NextResponse } from 'next/server';
 
 interface ReservoirStatsResponse {
   stats: {
-    floorAsk: number;
-    topBid: number;
-    volume24h: number;
-    volumeAll: number;
-    // Add other fields as needed based on Reservoir API response
+    floorPrice: number | null;
+    totalVolume: number | null;
   };
 }
 
@@ -87,10 +84,18 @@ export async function GET(request: Request) {
 
     const data = await response.json();
 
-    // Update cache
-    cache.set(cacheKey, { data, timestamp: now });
+    // Transform the data to match frontend expectations
+    const transformedData = {
+      stats: {
+        floorPrice: data.stats?.floorAsk?.amount?.native ?? null,
+        totalVolume: data.stats?.volumeAll?.native ?? null
+      }
+    };
 
-    return NextResponse.json(data);
+    // Update cache
+    cache.set(cacheKey, { data: transformedData, timestamp: now });
+
+    return NextResponse.json(transformedData);
   } catch (error) {
     console.error('Collection stats error:', error);
     return NextResponse.json(
