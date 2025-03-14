@@ -416,14 +416,6 @@ function isStablecoin(symbol: string, address?: string): boolean {
   return false;
 }
 
-// Add cache interface and initialization
-interface TokenCache {
-  data: TopToken;
-  timestamp: number;
-}
-
-const tokenCache = new Map<string, TokenCache>();
-
 // Define priority addresses from PRIORITY_TOKENS
 const priorityAddresses: string[] = Array.from(PRIORITY_TOKENS);
 
