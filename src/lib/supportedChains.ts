@@ -1,6 +1,6 @@
 import type { Chain } from "thirdweb";
 
-const berachain: Chain = {
+export const berachain: Chain = {
   id: 80094,
   rpc: "https://80094.rpc.thirdweb.com/",
   nativeCurrency: {

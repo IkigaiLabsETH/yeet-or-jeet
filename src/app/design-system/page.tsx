@@ -3,8 +3,8 @@
 import { SourcesSection } from "@/components/blocks/SourcesSection";
 import { InputsSection } from "../../components/blocks/InputsSection";
 import { TokenInputSection } from "../../components/blocks/TokenInputSection";
-import { Loading } from "../../components/blocks/Loading";
-import { base } from "thirdweb/chains";
+// import { Loading } from "../../components/blocks/Loading";
+import { berachain } from "../../lib/supportedChains";
 import { TradeSummarySection } from "../../components/blocks/TradeSummarySection/TradeSummarySection";
 import { MarkdownRenderer } from "../../components/blocks/markdown-renderer";
 
@@ -129,12 +129,12 @@ export default function StyleguidePage() {
             priceUSD: "$32.23",
             marketCapUSD: "$62.23m",
             volumeUSD: "$523.3m",
-            chain: base,
+            chain: berachain,
           }}
           walletInfo={{
             address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
             balanceUSD: "$32.2k",
-            chain: base,
+            chain: berachain,
           }}
         />
 
@@ -144,12 +144,12 @@ export default function StyleguidePage() {
             priceUSD: "$32.23",
             marketCapUSD: "$62.23m",
             volumeUSD: "$523.3m",
-            chain: base,
+            chain: berachain,
           }}
           walletInfo={{
             address: "0x1F846F6DAE38E1C88D71EAA191760B15f38B7A37",
             balanceUSD: "$32.2k",
-            chain: base,
+            chain: berachain,
           }}
         />
 
@@ -158,7 +158,7 @@ export default function StyleguidePage() {
           title="DCA OUT 20% of your VVV"
           description="Sell $500 at 24.32% profit"
           tokenAddress="0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf"
-          chainId={8453}
+          chainId={80094}
         />
 
         <TradeSummarySection
@@ -166,7 +166,7 @@ export default function StyleguidePage() {
           title="DCA IN $3.2k into VVV"
           description="Buy ~$3.2k at $62.3m MC"
           tokenAddress="0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf"
-          chainId={8453}
+          chainId={80094}
         />
 
         <TradeSummarySection
@@ -174,7 +174,7 @@ export default function StyleguidePage() {
           title="Hodl VVV"
           description="Don't change anything"
           tokenAddress="0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf"
-          chainId={8453}
+          chainId={80094}
         />
 
         <MarkdownRenderer markdownText={markdownExample} skipHtml={true} />
