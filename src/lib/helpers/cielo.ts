@@ -177,16 +177,19 @@ export async function getTokenPnL(
         tokenAddress,
       });
 
+      const currentBalance = Number(balance?.value || 0);
+      const currentValueUsd = Number(balance?.value || 0) * Number(balance?.decimals || 0);
+
       // Since we don't have historical data for Berachain yet,
       // we'll return a simplified PnL object with just the current balance
       return {
         token: tokenAddress,
-        total_buy_usd: 0,
+        total_buy_usd: currentValueUsd, // Use current value as total buy
         total_sell_usd: 0,
-        total_pnl_usd: 0,
+        total_pnl_usd: 0, // No PnL since we don't have historical data
         roi_percentage: 0,
         num_swaps: 0,
-        average_buy_price: 0,
+        average_buy_price: currentBalance > 0 ? currentValueUsd / currentBalance : 0,
         average_sell_price: 0,
         first_trade: Math.floor(Date.now() / 1000),
         last_trade: Math.floor(Date.now() / 1000),
