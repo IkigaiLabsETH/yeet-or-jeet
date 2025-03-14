@@ -125,6 +125,8 @@ const chainMap: Record<number, string> = {
 };
 
 export function WalletInfoCard(props: WalletInfo) {
+  const isEthereum = props.chain.id === 1; // Ethereum mainnet
+
   const walletStatsQuery = useQuery({
     queryKey: ["walletStats", props.address, props.chain.id],
     queryFn: async () => {
@@ -133,6 +135,8 @@ export function WalletInfoCard(props: WalletInfo) {
         chainMap[props.chain.id || 1] || "ethereum",
       );
     },
+    // Only enable the query for Ethereum mainnet
+    enabled: isEthereum,
     retry: false,
   });
 
@@ -152,6 +156,17 @@ export function WalletInfoCard(props: WalletInfo) {
   const formattedBalance = props.balanceUSD === "0" || !props.balanceUSD 
     ? "$0.00" 
     : props.balanceUSD;
+
+  // Helper function to format time duration
+  const formatHoldingTime = (days: number) => {
+    if (days < 1) {
+      return `${(days * 24).toFixed(1)}h`;
+    }
+    return `${days.toFixed(1)}d`;
+  };
+
+  const isLoading = walletStatsQuery.isLoading;
+  const isError = walletStatsQuery.isError;
 
   return (
     <AccountProvider address={props.address} client={thirdwebClient}>
@@ -192,49 +207,83 @@ export function WalletInfoCard(props: WalletInfo) {
           </div>
 
           {/* Row 2 - Trading Stats */}
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-            <div className="flex items-center gap-1">
-              <span className="font-medium">Win Rate:</span>
-              {walletStatsQuery.data ? (
-                <span className={walletStatsQuery.data.winrate >= 50 ? "text-green-500" : "text-red-500"}>
-                  {walletStatsQuery.data.winrate.toFixed(1)}%
-                </span>
-              ) : (
-                <span className="text-muted-foreground">--</span>
-              )}
+          {isEthereum ? (
+            // Show full stats for Ethereum
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+              <div className="flex items-center gap-1">
+                <span className="font-medium">Win Rate:</span>
+                {isLoading ? (
+                  <Skeleton className="h-3 w-12" />
+                ) : isError ? (
+                  <span className="text-destructive">Error</span>
+                ) : walletStatsQuery.data ? (
+                  <span className={walletStatsQuery.data.winrate >= 50 ? "text-green-500" : "text-red-500"}>
+                    {walletStatsQuery.data.winrate.toFixed(1)}%
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">--</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="font-medium">P&L:</span>
+                {isLoading ? (
+                  <Skeleton className="h-3 w-16" />
+                ) : isError ? (
+                  <span className="text-destructive">Error</span>
+                ) : walletStatsQuery.data ? (
+                  <span className={walletStatsQuery.data.combined_pnl_usd >= 0 ? "text-green-500" : "text-red-500"}>
+                    {walletStatsQuery.data.combined_pnl_usd.toLocaleString("en-US", {
+                      style: "currency",
+                      currency: "USD",
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">--</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="font-medium">Tokens:</span>
+                {isLoading ? (
+                  <Skeleton className="h-3 w-8" />
+                ) : isError ? (
+                  <span className="text-destructive">Error</span>
+                ) : walletStatsQuery.data ? (
+                  <span>{walletStatsQuery.data.tokens_traded.toLocaleString()}</span>
+                ) : (
+                  <span className="text-muted-foreground">--</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="font-medium">Avg Hold:</span>
+                {isLoading ? (
+                  <Skeleton className="h-3 w-10" />
+                ) : isError ? (
+                  <span className="text-destructive">Error</span>
+                ) : walletStatsQuery.data ? (
+                  <span>{formatHoldingTime(walletStatsQuery.data.average_holding_time)}</span>
+                ) : (
+                  <span className="text-muted-foreground">--</span>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <span className="font-medium">P&L:</span>
-              {walletStatsQuery.data ? (
-                <span className={walletStatsQuery.data.combined_pnl_usd >= 0 ? "text-green-500" : "text-red-500"}>
-                  {walletStatsQuery.data.combined_pnl_usd.toLocaleString("en-US", {
-                    style: "currency",
-                    currency: "USD",
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-              ) : (
-                <span className="text-muted-foreground">--</span>
-              )}
+          ) : (
+            // Show simplified view for Berachain
+            <div className="grid grid-cols-1 gap-2 text-xs">
+              <div className="flex items-center gap-1">
+                <span className="font-medium">Network:</span>
+                <span className="text-primary">Berachain</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="font-medium">Balance:</span>
+                <span>{formattedBalance}</span>
+              </div>
+              <div className="text-muted-foreground text-[10px] italic">
+                Detailed stats coming soon
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <span className="font-medium">Tokens:</span>
-              {walletStatsQuery.data ? (
-                <span>{walletStatsQuery.data.tokens_traded}</span>
-              ) : (
-                <span className="text-muted-foreground">--</span>
-              )}
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="font-medium">Avg Hold:</span>
-              {walletStatsQuery.data ? (
-                <span>{walletStatsQuery.data.average_holding_time.toFixed(1)}d</span>
-              ) : (
-                <span className="text-muted-foreground">--</span>
-              )}
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </AccountProvider>
