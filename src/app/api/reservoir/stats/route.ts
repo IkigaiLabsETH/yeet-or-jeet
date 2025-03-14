@@ -69,7 +69,7 @@ export async function GET(request: Request) {
     }
 
     const response = await fetch(
-      `https://api.reservoir.tools/collections/v7/${collectionId}/stats`,
+      `https://api.reservoir.tools/collections/v7/${encodeURIComponent(collectionId)}/stats/v2`,
       {
         headers: {
           'accept': '*/*',
@@ -87,8 +87,8 @@ export async function GET(request: Request) {
     // Transform the data to match frontend expectations
     const transformedData = {
       stats: {
-        floorPrice: data.stats?.floorAsk?.amount?.native ?? null,
-        totalVolume: data.stats?.volumeAll?.native ?? null
+        floorPrice: data.floorAsk?.price?.amount?.native ?? null,
+        totalVolume: data.volume?.allTime ?? null
       }
     };
 
