@@ -1,5 +1,22 @@
 const DEXSCREENER_BASE_URL = "https://api.dexscreener.com/latest/dex";
 
+// Add this constant near the top of the file
+const PRIORITY_TOKENS = new Set([
+  '0x7838cec5b11298ff6a9513fa385621b765c74174',  // BERA
+  '0x36e9fe653e673fda3857dbe5afbc884af8a316a2',  // HONEY
+  '0x8f06863df59a042bcc2c86cc8ca1709ec1ee316b',  // STGBERA
+  '0xa452810a4215fccc834ed241e6667f519b9856ec',  // BRGB
+  '0x5c43a5fef2b056934478373a53d1cb08030fd382',  // BERADOGE
+  '0x047b41a14f0bef681b94f570479ae7208e577a0c',  // HIM
+  '0x1f7210257fa157227d09449229a9266b0d581337',  // BERAMO
+  '0x6536cead649249cae42fc9bfb1f999429b3ec755',  // NAV
+  '0xb749584f9fc418cf905d54f462fdbfdc7462011b',  // BM
+  '0x949185d3be66775ea648f4a306740ea9eff9c567',  // PEPE
+  '0xb8b1af593dc37b33a2c87c8db1c9051fc32858b7',  // RAMEN
+  '0x08a38caa631de329ff2dad1656ce789f31af3142',  // YEET
+  '0xb2f776e9c1c926c4b2e54182fac058da9af0b6a5'   // HENLO
+].map(addr => addr.toLowerCase()));
+
 // Interface for token data returned by DexScreener
 export interface DexScreenerToken {
   address: string;
@@ -178,147 +195,25 @@ export async function getTokenInfo(address: string): Promise<DexScreenerToken | 
   }
 }
 
-/**
- * Gets the top tokens on Berachain by trading volume
- * @param limit The maximum number of tokens to return
- * @returns Array of top tokens
- */
-export async function getTopTokens(limit = 12): Promise<DexScreenerToken[]> {
-  try {
-    console.log("Fetching top tokens from DexScreener");
-    
-    // Fetch top pairs from Berachain
-    const data = await fetchDexScreener("/pairs/berachain");
-    
-    if (!data || !data.pairs || data.pairs.length === 0) {
-      console.warn("No pairs found on Berachain");
-      return []; // Return empty array instead of hardcoded tokens
-    }
-    
-    // Get all pairs and sort by volume
-    const pairs = data.pairs as DexScreenerPair[];
-    pairs.sort((a, b) => (b.volume?.h24 || 0) - (a.volume?.h24 || 0));
-    
-    // Extract unique tokens from pairs
-    const tokenMap = new Map<string, DexScreenerToken>();
-    const processedAddresses = new Set<string>();
-    
-    // Process pairs to extract tokens
-    for (const pair of pairs) {
-      try {
-        // Process base token
-        if (pair.baseToken && !processedAddresses.has(pair.baseToken.address.toLowerCase())) {
-          const baseAddress = pair.baseToken.address.toLowerCase();
-          processedAddresses.add(baseAddress);
-          
-          // Skip stablecoins and common quote tokens
-          if (isStablecoin(pair.baseToken.symbol, baseAddress)) {
-            console.log(`Skipping stablecoin: ${pair.baseToken.symbol}`);
-            continue;
-          }
-          
-          tokenMap.set(baseAddress, {
-            address: baseAddress,
-            name: pair.baseToken.name || "Unknown",
-            symbol: pair.baseToken.symbol || "???",
-            price_usd: pair.priceUsd || "0",
-            volume_24h: pair.volume?.h24 || 0,
-            price_change_24h: pair.priceChange?.h24 || 0,
-            market_cap_usd: pair.marketCap || pair.fdv || 0,
-            liquidity_usd: pair.liquidity?.usd || 0,
-            fdv_usd: pair.fdv || 0
-          });
-        }
-        
-        // Process quote token
-        if (pair.quoteToken && !processedAddresses.has(pair.quoteToken.address.toLowerCase())) {
-          const quoteAddress = pair.quoteToken.address.toLowerCase();
-          processedAddresses.add(quoteAddress);
-          
-          // Skip stablecoins and common quote tokens
-          if (isStablecoin(pair.quoteToken.symbol, quoteAddress)) {
-            console.log(`Skipping stablecoin: ${pair.quoteToken.symbol}`);
-            continue;
-          }
-          
-          // For quote tokens, we need to calculate the price differently
-          const quotePrice = pair.priceUsd ? (1 / parseFloat(pair.priceUsd)).toString() : "0";
-          
-          tokenMap.set(quoteAddress, {
-            address: quoteAddress,
-            name: pair.quoteToken.name || "Unknown",
-            symbol: pair.quoteToken.symbol || "???",
-            price_usd: quotePrice,
-            volume_24h: pair.volume?.h24 || 0,
-            price_change_24h: -1 * (pair.priceChange?.h24 || 0), // Invert price change for quote token
-            market_cap_usd: 0, // We don't have this data for quote tokens
-            liquidity_usd: pair.liquidity?.usd || 0,
-            fdv_usd: 0 // We don't have this data for quote tokens
-          });
-        }
-      } catch (pairError) {
-        console.warn("Error processing pair:", pairError);
-        // Continue to next pair
-        continue;
-      }
-      
-      // Stop once we have enough tokens
-      if (tokenMap.size >= limit * 3) break; // Get more than needed to filter later
-    }
-    
-    // If we couldn't extract any tokens, return empty array
-    if (tokenMap.size === 0) {
-      console.warn("No valid tokens extracted from pairs");
-      return []; // Return empty array instead of hardcoded tokens
-    }
-    
-    // Convert map to array and sort by volume
-    let tokens = Array.from(tokenMap.values());
-    tokens.sort((a, b) => b.volume_24h - a.volume_24h);
-    
-    // Limit to requested number of tokens
-    tokens = tokens.slice(0, limit);
-    
-    // Try to enrich token data with additional info
-    const enrichedTokens = await Promise.all(
-      tokens.map(async (token) => {
-        try {
-          const fullTokenInfo = await getTokenInfo(token.address);
-          if (fullTokenInfo) {
-            // Merge the data, keeping the original volume and price data
-            return {
-              ...token,
-              ...fullTokenInfo,
-              // Keep original price and volume data as they're more accurate from the pairs endpoint
-              price_usd: token.price_usd,
-              volume_24h: token.volume_24h,
-              price_change_24h: token.price_change_24h
-            };
-          }
-        } catch (error) {
-          console.warn(`Failed to enrich token ${token.symbol}:`, error);
-        }
-        return token;
-      })
-    );
-    
-    console.log(`Returning ${enrichedTokens.length} top tokens from DexScreener`);
-    return enrichedTokens;
-  } catch (error) {
-    console.error("Error fetching top tokens from DexScreener:", error);
-    
-    // Return empty array instead of hardcoded tokens
-    return [];
+// Update the isWrappedToken function to respect priority tokens
+function isWrappedToken(symbol: string, address: string): boolean {
+  // Skip the check for priority tokens
+  if (PRIORITY_TOKENS.has(address.toLowerCase())) {
+    return false;
   }
+
+  const wrappedSymbols = ['WETH', 'WBTC', 'WMATIC', 'WAVAX', 'WSOL'];
+  return wrappedSymbols.includes(symbol.toUpperCase()) || 
+         address.toLowerCase() === '0x5806E416dA447b267cEA759358cF22Cc41FAE80F'.toLowerCase(); // WETH address
 }
 
-/**
- * Checks if a token symbol is a stablecoin
- * @param symbol The token symbol
- * @param address The token address (optional)
- * @returns True if the token is a stablecoin
- */
+// Update the isStablecoin function to respect priority tokens
 function isStablecoin(symbol: string, address?: string): boolean {
+  // Skip the check for priority tokens
+  if (address && PRIORITY_TOKENS.has(address.toLowerCase())) {
+    return false;
+  }
+
   if (!symbol && !address) return false;
   
   // Specific stablecoin addresses to exclude from the homepage
@@ -365,4 +260,163 @@ function isStablecoin(symbol: string, address?: string): boolean {
   }
   
   return false;
+}
+
+/**
+ * Gets the top tokens on Berachain by trading volume
+ * @param limit The maximum number of tokens to return
+ * @returns Array of top tokens
+ */
+export async function getTopTokens(limit = 12): Promise<DexScreenerToken[]> {
+  try {
+    console.log("Fetching top tokens from DexScreener");
+    
+    // Fetch top pairs from Berachain
+    const data = await fetchDexScreener("/pairs/berachain");
+    
+    if (!data || !data.pairs || data.pairs.length === 0) {
+      console.warn("No pairs found on Berachain");
+      return []; // Return empty array instead of hardcoded tokens
+    }
+    
+    // Get all pairs and sort by volume
+    const pairs = data.pairs as DexScreenerPair[];
+    pairs.sort((a, b) => (b.volume?.h24 || 0) - (a.volume?.h24 || 0));
+    
+    // Extract unique tokens from pairs
+    const tokenMap = new Map<string, DexScreenerToken>();
+    const processedAddresses = new Set<string>();
+    
+    // Process pairs to extract tokens
+    for (const pair of pairs) {
+      try {
+        // Process base token
+        if (pair.baseToken && !processedAddresses.has(pair.baseToken.address.toLowerCase())) {
+          const baseAddress = pair.baseToken.address.toLowerCase();
+          processedAddresses.add(baseAddress);
+          
+          // Skip stablecoins and wrapped tokens
+          if (isStablecoin(pair.baseToken.symbol, baseAddress) || isWrappedToken(pair.baseToken.symbol, baseAddress)) {
+            console.log(`Skipping ${isStablecoin(pair.baseToken.symbol, baseAddress) ? 'stablecoin' : 'wrapped token'}: ${pair.baseToken.symbol}`);
+            continue;
+          }
+          
+          tokenMap.set(baseAddress, {
+            address: baseAddress,
+            name: pair.baseToken.name || "Unknown",
+            symbol: pair.baseToken.symbol || "???",
+            price_usd: pair.priceUsd || "0",
+            volume_24h: pair.volume?.h24 || 0,
+            price_change_24h: pair.priceChange?.h24 || 0,
+            market_cap_usd: pair.marketCap || pair.fdv || 0,
+            liquidity_usd: pair.liquidity?.usd || 0,
+            fdv_usd: pair.fdv || 0
+          });
+        }
+        
+        // Process quote token
+        if (pair.quoteToken && !processedAddresses.has(pair.quoteToken.address.toLowerCase())) {
+          const quoteAddress = pair.quoteToken.address.toLowerCase();
+          processedAddresses.add(quoteAddress);
+          
+          // Skip stablecoins and wrapped tokens
+          if (isStablecoin(pair.quoteToken.symbol, quoteAddress) || isWrappedToken(pair.quoteToken.symbol, quoteAddress)) {
+            console.log(`Skipping ${isStablecoin(pair.quoteToken.symbol, quoteAddress) ? 'stablecoin' : 'wrapped token'}: ${pair.quoteToken.symbol}`);
+            continue;
+          }
+          
+          // For quote tokens, we need to calculate the price differently
+          const quotePrice = pair.priceUsd ? (1 / parseFloat(pair.priceUsd)).toString() : "0";
+          
+          tokenMap.set(quoteAddress, {
+            address: quoteAddress,
+            name: pair.quoteToken.name || "Unknown",
+            symbol: pair.quoteToken.symbol || "???",
+            price_usd: quotePrice,
+            volume_24h: pair.volume?.h24 || 0,
+            price_change_24h: -1 * (pair.priceChange?.h24 || 0), // Invert price change for quote token
+            market_cap_usd: 0, // We don't have this data for quote tokens
+            liquidity_usd: pair.liquidity?.usd || 0,
+            fdv_usd: 0 // We don't have this data for quote tokens
+          });
+        }
+      } catch (pairError) {
+        console.warn("Error processing pair:", pairError);
+        // Continue to next pair
+        continue;
+      }
+      
+      // Stop once we have enough tokens
+      if (tokenMap.size >= limit * 3) break; // Get more than needed to filter later
+    }
+    
+    // If we couldn't extract any tokens, return empty array
+    if (tokenMap.size === 0) {
+      console.warn("No valid tokens extracted from pairs");
+      return []; // Return empty array instead of hardcoded tokens
+    }
+    
+    // Convert map to array and sort by volume
+    let tokens = Array.from(tokenMap.values());
+
+    // Update filtering logic to prioritize specific tokens
+    tokens = tokens.filter(token => {
+      // Always include priority tokens
+      if (PRIORITY_TOKENS.has(token.address.toLowerCase())) {
+        return true;
+      }
+
+      const hasEnoughVolume = token.volume_24h >= 100000;
+      const isNotStablecoin = !isStablecoin(token.symbol, token.address);
+      const isNotWrapped = !isWrappedToken(token.symbol, token.address);
+      
+      return hasEnoughVolume && isNotStablecoin && isNotWrapped;
+    });
+
+    // Sort tokens to prioritize the specific list
+    tokens.sort((a, b) => {
+      const aIsPriority = PRIORITY_TOKENS.has(a.address.toLowerCase());
+      const bIsPriority = PRIORITY_TOKENS.has(b.address.toLowerCase());
+      
+      if (aIsPriority && !bIsPriority) return -1;
+      if (!aIsPriority && bIsPriority) return 1;
+      
+      // If both are priority or both are not, sort by volume
+      return b.volume_24h - a.volume_24h;
+    });
+
+    // Limit to requested number of tokens
+    tokens = tokens.slice(0, limit);
+    
+    // Try to enrich token data with additional info
+    const enrichedTokens = await Promise.all(
+      tokens.map(async (token) => {
+        try {
+          const fullTokenInfo = await getTokenInfo(token.address);
+          if (fullTokenInfo) {
+            // Merge the data, keeping the original volume and price data
+            return {
+              ...token,
+              ...fullTokenInfo,
+              // Keep original price and volume data as they're more accurate from the pairs endpoint
+              price_usd: token.price_usd,
+              volume_24h: token.volume_24h,
+              price_change_24h: token.price_change_24h
+            };
+          }
+        } catch (error) {
+          console.warn(`Failed to enrich token ${token.symbol}:`, error);
+        }
+        return token;
+      })
+    );
+    
+    console.log(`Returning ${enrichedTokens.length} top tokens from DexScreener`);
+    return enrichedTokens;
+  } catch (error) {
+    console.error("Error fetching top tokens from DexScreener:", error);
+    
+    // Return empty array instead of hardcoded tokens
+    return [];
+  }
 } 

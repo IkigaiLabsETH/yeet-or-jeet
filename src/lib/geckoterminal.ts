@@ -318,8 +318,42 @@ export interface TopToken {
   trust_score?: number;
 }
 
-// Add this function to check if a token is a stablecoin
+// Add this constant near the top of the file with other constants
+const PRIORITY_TOKENS = new Set([
+  '0x7838cec5b11298ff6a9513fa385621b765c74174',  // BERA
+  '0x36e9fe653e673fda3857dbe5afbc884af8a316a2',  // HONEY
+  '0x8f06863df59a042bcc2c86cc8ca1709ec1ee316b',  // STGBERA
+  '0xa452810a4215fccc834ed241e6667f519b9856ec',  // BRGB
+  '0x5c43a5fef2b056934478373a53d1cb08030fd382',  // BERADOGE
+  '0x047b41a14f0bef681b94f570479ae7208e577a0c',  // HIM
+  '0x1f7210257fa157227d09449229a9266b0d581337',  // BERAMO
+  '0x6536cead649249cae42fc9bfb1f999429b3ec755',  // NAV
+  '0xb749584f9fc418cf905d54f462fdbfdc7462011b',  // BM
+  '0x949185d3be66775ea648f4a306740ea9eff9c567',  // PEPE
+  '0xb8b1af593dc37b33a2c87c8db1c9051fc32858b7',  // RAMEN
+  '0x08a38caa631de329ff2dad1656ce789f31af3142',  // YEET
+  '0xb2f776e9c1c926c4b2e54182fac058da9af0b6a5'   // HENLO
+].map(addr => addr.toLowerCase()));
+
+// Update the isWrappedToken function to be more precise
+function isWrappedToken(symbol: string, address: string): boolean {
+  // Skip the check for priority tokens
+  if (PRIORITY_TOKENS.has(address.toLowerCase())) {
+    return false;
+  }
+
+  const wrappedSymbols = ['WETH', 'WBTC', 'WMATIC', 'WAVAX', 'WSOL'];
+  return wrappedSymbols.includes(symbol.toUpperCase()) || 
+         address.toLowerCase() === '0x5806E416dA447b267cEA759358cF22Cc41FAE80F'.toLowerCase(); // WETH address
+}
+
+// Update the isStablecoin function to respect priority tokens
 function isStablecoin(symbol: string, address?: string): boolean {
+  // Skip the check for priority tokens
+  if (address && PRIORITY_TOKENS.has(address.toLowerCase())) {
+    return false;
+  }
+
   if (!symbol && !address) return false;
   
   // Specific token addresses to exclude from the homepage
@@ -411,9 +445,9 @@ export async function getTopTokens(): Promise<TopToken[]> {
         const baseTokenPrice = pool.attributes.base_token_price_usd;
         const baseTokenSymbol = pool.attributes.base_token_symbol;
         
-        // Skip stablecoins
-        if (isStablecoin(baseTokenSymbol, baseTokenAddress)) {
-          console.log(`Skipping stablecoin: ${baseTokenSymbol}`);
+        // Skip stablecoins and wrapped tokens
+        if (isStablecoin(baseTokenSymbol, baseTokenAddress) || isWrappedToken(baseTokenSymbol, baseTokenAddress)) {
+          console.log(`Skipping ${isStablecoin(baseTokenSymbol, baseTokenAddress) ? 'stablecoin' : 'wrapped token'}: ${baseTokenSymbol}`);
           continue;
         }
         
@@ -453,9 +487,9 @@ export async function getTopTokens(): Promise<TopToken[]> {
         const quoteTokenPrice = pool.attributes.quote_token_price_usd;
         const quoteTokenSymbol = pool.attributes.quote_token_symbol;
         
-        // Skip stablecoins
-        if (isStablecoin(quoteTokenSymbol, quoteTokenAddress)) {
-          console.log(`Skipping stablecoin: ${quoteTokenSymbol}`);
+        // Skip stablecoins and wrapped tokens
+        if (isStablecoin(quoteTokenSymbol, quoteTokenAddress) || isWrappedToken(quoteTokenSymbol, quoteTokenAddress)) {
+          console.log(`Skipping ${isStablecoin(quoteTokenSymbol, quoteTokenAddress) ? 'stablecoin' : 'wrapped token'}: ${quoteTokenSymbol}`);
           continue;
         }
         
@@ -594,15 +628,17 @@ export async function getTopTokens(): Promise<TopToken[]> {
       }
     }
     
-    // Sort by volume
-    tokens.sort((a, b) => b.volume_24h - a.volume_24h);
-    
-    // Filter out tokens with volume below $100K
+    // Update the filtering logic to prioritize specific tokens
     const filteredTokens = tokens.filter(token => {
+      // Always include priority tokens regardless of volume
+      if (PRIORITY_TOKENS.has(token.address.toLowerCase())) {
+        return true;
+      }
+
       const hasEnoughVolume = token.volume_24h >= 100000;
       const isNotStablecoin = !isStablecoin(token.symbol, token.address);
+      const isNotWrapped = !isWrappedToken(token.symbol, token.address);
       
-      // Log tokens that are being filtered out
       if (!hasEnoughVolume) {
         console.log(`Filtering out token with low volume: ${token.symbol} (${token.address}), volume: $${token.volume_24h.toLocaleString()}`);
       }
@@ -610,20 +646,33 @@ export async function getTopTokens(): Promise<TopToken[]> {
       if (!isNotStablecoin) {
         console.log(`Filtering out stablecoin: ${token.symbol} (${token.address})`);
       }
+
+      if (!isNotWrapped) {
+        console.log(`Filtering out wrapped token: ${token.symbol} (${token.address})`);
+      }
       
-      return hasEnoughVolume && isNotStablecoin;
+      return hasEnoughVolume && isNotStablecoin && isNotWrapped;
     });
-    
-    // Limit to 12 tokens
+
+    // Sort tokens to prioritize the specific list
+    filteredTokens.sort((a, b) => {
+      const aIsPriority = PRIORITY_TOKENS.has(a.address.toLowerCase());
+      const bIsPriority = PRIORITY_TOKENS.has(b.address.toLowerCase());
+      
+      if (aIsPriority && !bIsPriority) return -1;
+      if (!aIsPriority && bIsPriority) return 1;
+      
+      // If both are priority or both are not, sort by volume
+      return b.volume_24h - a.volume_24h;
+    });
+
+    // Take top tokens, ensuring we include priority tokens
     const result = filteredTokens.slice(0, 12);
     
-    console.log(`Returning ${result.length} top non-stablecoin tokens with volume >= $100K`);
+    console.log(`Returning ${result.length} tokens (including priority tokens)`);
     return result;
   } catch (error) {
     console.error("Error fetching real-time token data:", error);
-    
-    // Return hardcoded tokens as a last resort fallback
-    console.warn("Returning hardcoded tokens due to API error");
     return getHardcodedTokens();
   }
 }
@@ -632,113 +681,64 @@ export async function getTopTokens(): Promise<TopToken[]> {
  * Returns a list of hardcoded tokens as a fallback when APIs fail
  */
 function getHardcodedTokens(): TopToken[] {
-  // Define hardcoded tokens
   const hardcodedTokens = [
     {
-      address: "0x6536cEAD649249cae42FC9bfb1F999429b3ec755",
+      address: "0x7838cec5b11298ff6a9513fa385621b765c74174",
+      name: "BERA",
+      symbol: "BERA",
+      price_usd: "3.25",
+      volume_24h: 5000000,
+      price_change_24h: 2.5,
+      market_cap_usd: 325000000
+    },
+    {
+      address: "0x36e9fe653e673fda3857dbe5afbc884af8a316a2",
+      name: "Honey",
+      symbol: "HONEY",
+      price_usd: "0.95",
+      volume_24h: 2800000,
+      price_change_24h: 1.8,
+      market_cap_usd: 95000000
+    },
+    {
+      address: "0x6536cead649249cae42fc9bfb1f999429b3ec755",
       name: "Navigator",
       symbol: "NAV",
-      price_usd: "0.42",
-      volume_24h: 1250000,
+      price_usd: "0.125",
+      volume_24h: 2500000,
       price_change_24h: 5.2,
-      market_cap_usd: 4200000
+      market_cap_usd: 12500000
     },
     {
-      address: "0xB776608A6881FfD2152bDFE65BD04Cbe66697Dcf",
-      name: "Bread",
-      symbol: "BREAD",
-      price_usd: "0.18",
-      volume_24h: 980000,
-      price_change_24h: 3.7,
-      market_cap_usd: 1800000
-    },
-    {
-      address: "0x047b41A14F0BeF681b94f570479AE7208E577a0C",
+      address: "0x047b41a14f0bef681b94f570479ae7208e577a0c",
       name: "Him",
       symbol: "HIM",
-      price_usd: "0.65",
-      volume_24h: 1450000,
-      price_change_24h: 8.9,
-      market_cap_usd: 6500000
-    },
-    {
-      address: "0x1F7210257FA157227D09449229a9266b0D581337",
-      name: "Beramo",
-      symbol: "BERAMO",
-      price_usd: "0.31",
-      volume_24h: 1120000,
-      price_change_24h: -2.3,
-      market_cap_usd: 3100000
-    },
-    {
-      address: "0xb749584F9fC418Cf905d54f462fdbFdC7462011b",
-      name: "Berachain Meme",
-      symbol: "BM",
-      price_usd: "0.0085",
-      volume_24h: 750000,
+      price_usd: "0.045",
+      volume_24h: 950000,
       price_change_24h: 12.5,
-      market_cap_usd: 850000
-    },
-    {
-      address: "0xb8B1Af593Dc37B33a2c87C8Db1c9051FC32858B7",
-      name: "Ramen",
-      symbol: "RAMEN",
-      price_usd: "0.22",
-      volume_24h: 920000,
-      price_change_24h: 4.8,
-      market_cap_usd: 2200000
-    },
-    {
-      address: "0x08A38Caa631DE329FF2DAD1656CE789F31AF3142",
-      name: "Yeet",
-      symbol: "YEET",
-      price_usd: "0.0125",
-      volume_24h: 680000,
-      price_change_24h: 18.3,
-      market_cap_usd: 1250000
-    },
-    {
-      address: "0xFF0a636Dfc44Bb0129b631cDd38D21B613290c98",
-      name: "Hold",
-      symbol: "HOLD",
-      price_usd: "0.0375",
-      volume_24h: 580000,
-      price_change_24h: -1.5,
-      market_cap_usd: 3750000
-    },
-    {
-      address: "0xb2F776e9c1C926C4b2e54182Fac058dA9Af0B6A5",
-      name: "Henlo",
-      symbol: "HENLO",
-      price_usd: "0.0095",
-      volume_24h: 520000,
-      price_change_24h: 7.2,
-      market_cap_usd: 950000
-    },
-    {
-      address: "0x18878Df23e2a36f81e820e4b47b4A40576D3159C",
-      name: "Olympus",
-      symbol: "OHM",
-      price_usd: "0.85",
-      volume_24h: 1350000,
-      price_change_24h: -3.8,
-      market_cap_usd: 8500000
+      market_cap_usd: 4500000
     }
   ];
   
-  // Filter out stablecoins and tokens with volume below $100K
+  // Filter and sort hardcoded tokens
   return hardcodedTokens.filter(token => {
+    // Always include priority tokens
+    if (PRIORITY_TOKENS.has(token.address.toLowerCase())) {
+      return true;
+    }
+
     const hasEnoughVolume = token.volume_24h >= 100000;
     const isNotStablecoin = !isStablecoin(token.symbol, token.address);
+    const isNotWrapped = !isWrappedToken(token.symbol, token.address);
     
-    if (!hasEnoughVolume) {
-      console.log(`Filtering out hardcoded token with low volume: ${token.symbol}, volume: $${token.volume_24h.toLocaleString()}`);
-    }
+    return hasEnoughVolume && isNotStablecoin && isNotWrapped;
+  }).sort((a, b) => {
+    const aIsPriority = PRIORITY_TOKENS.has(a.address.toLowerCase());
+    const bIsPriority = PRIORITY_TOKENS.has(b.address.toLowerCase());
     
-    if (!isNotStablecoin) {
-      console.log(`Filtering out hardcoded stablecoin: ${token.symbol}`);
-    }
+    if (aIsPriority && !bIsPriority) return -1;
+    if (!aIsPriority && bIsPriority) return 1;
     
-    return hasEnoughVolume && isNotStablecoin;
+    return b.volume_24h - a.volume_24h;
   });
 }
