@@ -5,15 +5,26 @@ A DeFi trading assistant powered by AI that helps you make informed decisions ab
 ## Features
 
 - **Top Tokens Grid**: Discover high-volume tokens on Berachain
-  - View tokens sorted by 24-hour trading volume
-  - See key metrics like price, volume, market cap, and liquidity
-  - Access token social links and websites
-  - View token descriptions and trust scores
-  - One-click token selection for analysis
-  - Automatic filtering of stablecoins for more relevant analysis
-    - Excludes common stablecoins (USDT, USDC, DAI, etc.)
-    - Specifically excludes Berachain stablecoins (NECT, sUSD.e, sUSDa)
-  - Fallback to curated token list when APIs are unavailable
+  - Real-time token data with 30-second cache refresh
+  - Priority token list with guaranteed inclusion
+  - Dynamic volume-based token discovery
+  - Multi-source price aggregation:
+    - Primary: GeckoTerminal pools for real-time prices
+    - Secondary: GeckoTerminal token API for enriched data
+    - Tertiary: DexScreener API as fallback
+  - Automatic filtering system:
+    - Excludes stablecoins (USDT, USDC, DAI, etc.)
+    - Filters out wrapped tokens
+    - Removes low-volume tokens (< $100K/24h)
+  - Rich token metadata:
+    - Price and volume metrics
+    - Market cap and liquidity data
+    - Social links and community info
+    - Trust scores and risk metrics
+  - Smart caching system:
+    - 30-second cache for high-frequency data
+    - Parallel data enrichment for priority tokens
+    - Fallback mechanisms for API failures
 
 - **NFT Collection Analysis**: Advanced NFT analytics powered by Reservoir API
   - Comprehensive Market Analysis
@@ -71,13 +82,24 @@ A DeFi trading assistant powered by AI that helps you make informed decisions ab
     - Bid tracking dashboard
     - Offer management tools
 
-- **Real-time Price Data**: Integrated with multiple data sources for accurate and up-to-date token information
-  - GeckoTerminal API as primary data source for comprehensive token information
-  - DexScreener API as fallback for token data when GeckoTerminal is unavailable
-  - Hardcoded token data as final fallback when both APIs fail
-  - Current price in USD
-  - Price updates in real-time
-  - Support for all whitelisted tokens on Berachain
+- **Real-time Price Data**: Enhanced multi-source price aggregation
+  - Primary Source (GeckoTerminal):
+    - Pool-based real-time price discovery
+    - Direct token price API integration
+    - Metadata enrichment for priority tokens
+  - Secondary Source (DexScreener):
+    - Pair-based price verification
+    - Volume and liquidity cross-validation
+  - Fallback Mechanisms:
+    - Cached data (30-second validity)
+    - Priority token address list
+    - Multi-API retry logic
+  - Data Quality Features:
+    - Price cross-verification
+    - Volume validation
+    - Stablecoin detection
+    - Wrapped token filtering
+    - Market manipulation checks
 
 - **Smart Swap Integration**: Leveraging OogaBooga's Swap API for efficient token swaps
   - Best price routing across multiple DEXs
@@ -91,22 +113,33 @@ A DeFi trading assistant powered by AI that helps you make informed decisions ab
 
 ### GeckoTerminal API (Primary Data Source)
 
-The application primarily integrates with GeckoTerminal's API to provide comprehensive token data:
+Enhanced integration with GeckoTerminal's API for comprehensive token data:
 
-- **Token Discovery**: Fetches top tokens by volume on Berachain directly from DEXs
-  - Automatically filters out stablecoins for more relevant analysis
-  - Dynamically discovers tokens based on actual trading activity
-  - Sorts tokens by 24-hour trading volume
-- **Token Metadata**: Retrieves detailed information about tokens
-  - Token logos and images
-  - Social media links (Twitter, Telegram, Website)
-  - Token descriptions
-  - GeckoTerminal trust scores
-  - Market data (price, volume, market cap)
-- **Pool Data**: Extracts token information from trading pools
-  - Price and volume data from actual DEX trades
-  - Liquidity information
-  - Price change percentages
+- **Real-time Pool Data**:
+  - Direct pool price monitoring
+  - Volume aggregation across pairs
+  - Liquidity depth tracking
+  - Price change calculations
+  
+- **Token Discovery System**:
+  - Priority token tracking
+  - Volume-based discovery
+  - Smart filtering logic:
+    - Stablecoin exclusion
+    - Wrapped token detection
+    - Volume thresholds
+  
+- **Data Enrichment Pipeline**:
+  - Base token information
+  - Market metrics
+  - Social and community data
+  - Trust and risk scores
+  
+- **Caching Architecture**:
+  - 30-second cache lifetime
+  - Per-token cache entries
+  - Automatic staleness checks
+  - Cache invalidation on significant changes
 
 ### Cielo API Integration
 
@@ -278,3 +311,18 @@ Currently supporting:
 > - For Cielo API key, visit https://cielo.finance
 
 Please note that this application is a conceptual prototype and not a fully operational product. The application provided is for educational purposes only and should not be considered financial advice.
+
+## Data Flow Architecture
+
+```
+Primary Data Flow:
+Pool Data (real-time) -> Token Cache (30s) -> Token Enrichment -> Filtering -> Sorting -> Final List
+
+Fallback Mechanisms:
+1. GeckoTerminal Pools API (most recent prices/volumes)
+2. GeckoTerminal Token API (token-specific data)
+3. GeckoTerminal Info API (metadata enrichment)
+4. Cached data (if within 30 seconds)
+5. DexScreener API (fallback)
+6. Priority token list (guaranteed inclusion)
+```
