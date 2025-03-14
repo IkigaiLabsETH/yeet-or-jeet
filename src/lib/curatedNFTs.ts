@@ -11,16 +11,16 @@ export interface CuratedNFT {
 
 export const CURATED_NFTS: CuratedNFT[] = [
   {
-    address: "0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270",
-    name: "Art Blocks",
-    symbol: "BLOCKS",
+    address: "0xd0b67acc0e5918192b158c1647dad5782e6f4fb5",
+    name: "Guy Bourdin",
+    symbol: "GUY",
     description: "Art Blocks is a first-of-its-kind platform focused on genuinely programmable on-demand generative content that is stored immutably on the Ethereum blockchain.",
-    category: "Gen Art",
+    category: "Photography",
     floorPrice: "0.22",
     totalVolume: "650000"
   },
   {
-    address: "0x059EDD72Cd353dF5106D2B9cC5ab83a52287aC3a",
+    address: "0x059edd72cd353df5106d2b9cc5ab83a52287ac3a:0:999999",
     name: "Chromie Squiggle",
     symbol: "SQUIGGLE",
     description: "A generative art project by Snowfro, founder of Art Blocks. Each squiggle is randomly generated and stored on-chain.",
