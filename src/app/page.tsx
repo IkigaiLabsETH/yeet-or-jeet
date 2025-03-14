@@ -73,15 +73,6 @@ type Screen =
       };
     };
 
-interface TokenInfo {
-  address: string;
-  priceUSD: string;
-  marketCapUSD: string;
-  volumeUSD: string;
-  chain: Chain;
-  imageUrl?: string;
-}
-
 export default function LandingPage() {
   const [screen, setScreen] = useState<Screen>({ id: "initial" });
   const account = useActiveAccount();

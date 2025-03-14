@@ -1,5 +1,6 @@
 import type { Chain } from "thirdweb";
 import Link from "next/link";
+import Image from "next/image";
 import { cn } from "../../lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { getWalletStatsAction } from "../../app/server-actions/getWalletStatsAction";
@@ -66,10 +67,12 @@ export function TokenInfoCard(props: TokenInfo & { imageUrl?: string }) {
       >
         {/* Left */}
         {props.imageUrl ? (
-          <img 
+          <Image 
             src={props.imageUrl} 
             alt={tokenName?.toString() || "Token icon"}
-            className="size-16 rounded-full ring-2 ring-background shadow-lg object-cover"
+            width={64}
+            height={64}
+            className="rounded-full ring-2 ring-background shadow-lg object-cover"
           />
         ) : (
           <TokenIcon
