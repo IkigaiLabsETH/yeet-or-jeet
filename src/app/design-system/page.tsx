@@ -125,14 +125,14 @@ export default function StyleguidePage() {
         <SourcesSection />
         <InputsSection
           tokenInfo={{
-            address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            address: "0x6969696969696969696969696969696969696969",
             priceUSD: "$32.23",
             marketCapUSD: "$62.23m",
             volumeUSD: "$523.3m",
             chain: berachain,
           }}
           walletInfo={{
-            address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+            address: "0xAE91CB00C413A8D6089Ba0bc8bF66fbA47A912Ea",
             balanceUSD: "$32.2k",
             chain: berachain,
           }}
@@ -140,14 +140,14 @@ export default function StyleguidePage() {
 
         <InputsSection
           tokenInfo={{
-            address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            address: "0x6969696969696969696969696969696969696969",
             priceUSD: "$32.23",
             marketCapUSD: "$62.23m",
             volumeUSD: "$523.3m",
             chain: berachain,
           }}
           walletInfo={{
-            address: "0x1F846F6DAE38E1C88D71EAA191760B15f38B7A37",
+            address: "0xAE91CB00C413A8D6089Ba0bc8bF66fbA47A912Ea",
             balanceUSD: "$32.2k",
             chain: berachain,
           }}
@@ -157,7 +157,7 @@ export default function StyleguidePage() {
           variant="sell"
           title="DCA OUT 20% of your VVV"
           description="Sell $500 at 24.32% profit"
-          tokenAddress="0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf"
+          tokenAddress="0x6969696969696969696969696969696969696969"
           chainId={80094}
         />
 
@@ -165,7 +165,7 @@ export default function StyleguidePage() {
           variant="buy"
           title="DCA IN $3.2k into VVV"
           description="Buy ~$3.2k at $62.3m MC"
-          tokenAddress="0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf"
+          tokenAddress="0x6969696969696969696969696969696969696969"
           chainId={80094}
         />
 
@@ -173,7 +173,7 @@ export default function StyleguidePage() {
           variant="hold"
           title="Hodl VVV"
           description="Don't change anything"
-          tokenAddress="0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf"
+          tokenAddress="0x6969696969696969696969696969696969696969"
           chainId={80094}
         />
 
