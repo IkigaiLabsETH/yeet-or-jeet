@@ -423,7 +423,6 @@ interface TokenCache {
 }
 
 const tokenCache = new Map<string, TokenCache>();
-const CACHE_DURATION = 30 * 1000; // 30 seconds cache
 
 // Define priority addresses from PRIORITY_TOKENS
 const priorityAddresses: string[] = Array.from(PRIORITY_TOKENS);
@@ -503,16 +502,18 @@ export async function getTopTokens(): Promise<TopToken[]> {
           price: pool.attributes.base_token_price_usd,
           symbol: pool.attributes.base_token_symbol,
           name: pool.attributes.base_token_name,
-          volume: pool.attributes.volume_usd?.h24 || 0,
-          priceChange: pool.attributes.price_change_percentage?.h24 || 0
+          volume: pool.attributes.volume_usd_24h || 0,
+          priceChange: pool.attributes.price_change_percentage_24h || 0,
+          liquidity: pool.attributes.reserve_in_usd || 0
         },
         {
           id: pool.relationships?.quote_token?.data?.id,
           price: pool.attributes.quote_token_price_usd,
           symbol: pool.attributes.quote_token_symbol,
           name: pool.attributes.quote_token_name,
-          volume: pool.attributes.volume_usd?.h24 || 0,
-          priceChange: -1 * (pool.attributes.price_change_percentage?.h24 || 0)
+          volume: pool.attributes.volume_usd_24h || 0,
+          priceChange: -1 * (pool.attributes.price_change_percentage_24h || 0),
+          liquidity: pool.attributes.reserve_in_usd || 0
         }
       ];
 
@@ -542,7 +543,8 @@ export async function getTopTokens(): Promise<TopToken[]> {
           price_usd: token.price || "0",
           volume_24h: token.volume || 0,
           price_change_24h: token.priceChange || 0,
-          market_cap_usd: 0 // Will be enriched later
+          market_cap_usd: 0, // Will be enriched later
+          liquidity_usd: token.liquidity || 0
         };
 
         // Try to get additional info
@@ -554,7 +556,7 @@ export async function getTopTokens(): Promise<TopToken[]> {
               image_url: infoAttrs.image_url,
               description: infoAttrs.description,
               websites: infoAttrs.websites,
-              discord_url: infoData.discord_url,
+              discord_url: infoAttrs.discord_url,
               telegram_handle: infoAttrs.telegram_handle,
               twitter_handle: infoAttrs.twitter_handle,
               categories: infoAttrs.categories,
@@ -566,10 +568,24 @@ export async function getTopTokens(): Promise<TopToken[]> {
           console.warn(`Failed to fetch additional info for token ${tokenAddress}:`, infoError);
         }
 
-        // Update cache and token map
-        tokenCache.set(tokenAddress, { data: tokenInfo, timestamp: now });
+        // Try to get market cap and additional price data
+        try {
+          const priceData = await fetchGeckoTerminal(`/networks/berachain/tokens/${tokenAddress}/price`);
+          if (priceData?.data?.attributes) {
+            const attrs = priceData.data.attributes;
+            tokenInfo.market_cap_usd = attrs.market_cap_usd || attrs.fdv_usd || 0;
+            // Update with more accurate price data if available
+            if (attrs.price_usd) tokenInfo.price_usd = attrs.price_usd;
+            if (attrs.volume_usd_24h) tokenInfo.volume_24h = attrs.volume_usd_24h;
+            if (attrs.price_change_percentage_24h) tokenInfo.price_change_24h = attrs.price_change_percentage_24h;
+          }
+        } catch (priceError) {
+          console.warn(`Failed to fetch price data for token ${tokenAddress}:`, priceError);
+        }
+
+        // Update token map
         tokenMap.set(tokenAddress, tokenInfo);
-        console.log(`Added new token: ${tokenInfo.symbol}`);
+        console.log(`Added new token: ${tokenInfo.symbol} (${tokenInfo.address})`);
       }
     }
 
