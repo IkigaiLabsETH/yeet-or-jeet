@@ -444,7 +444,6 @@ export async function getTopTokens(): Promise<TopToken[]> {
     
     // Extract token information from pools
     const tokenMap = new Map<string, any>();
-    const now = Date.now();
     
     // First, add all priority tokens to ensure they're included
     for (const address of priorityAddresses) {
