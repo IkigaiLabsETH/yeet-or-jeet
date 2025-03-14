@@ -440,7 +440,7 @@ function ResponseScreen(props: {
                   <div className="prose prose-lg dark:prose-invert max-w-none">
                     <div className="space-y-8">
                       <MarkdownRenderer 
-                        markdownText={(detailsSection.content || '').split('\n').map((line, index) => {
+                        markdownText={(detailsSection.content || '').split('\n').map((line) => {
                           // Remove any existing markdown headers
                           line = line.replace(/^#+\s*/, '');
                           
