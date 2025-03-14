@@ -437,6 +437,7 @@ export async function getTopTokens(): Promise<TopToken[]> {
     const poolsData = await fetchGeckoTerminal("/networks/berachain/pools?page=1&page_size=100");
     
     if (!poolsData?.data) {
+      console.error("Failed to fetch pools data");
       throw new Error("Failed to fetch pools data");
     }
     
@@ -445,6 +446,51 @@ export async function getTopTokens(): Promise<TopToken[]> {
     // Extract token information from pools
     const tokenMap = new Map<string, any>();
     const now = Date.now();
+    
+    // First, add all priority tokens to ensure they're included
+    for (const address of priorityAddresses) {
+      try {
+        const tokenResponse = await fetchGeckoTerminal(`/networks/berachain/tokens/${address}`);
+        if (tokenResponse?.data?.attributes) {
+          const attrs = tokenResponse.data.attributes;
+          const tokenInfo: TopToken = {
+            address: address,
+            name: attrs.name || "Unknown",
+            symbol: attrs.symbol || "???",
+            price_usd: attrs.price_usd || "0",
+            volume_24h: attrs.volume_usd?.h24 || 0,
+            price_change_24h: attrs.price_change_percentage?.h24 || 0,
+            market_cap_usd: attrs.market_cap_usd || attrs.fdv_usd || 0
+          };
+          
+          // Try to get additional info
+          try {
+            const infoData = await fetchGeckoTerminal(`/networks/berachain/tokens/${address}/info`);
+            if (infoData?.data?.attributes) {
+              const infoAttrs = infoData.data.attributes;
+              Object.assign(tokenInfo, {
+                image_url: infoAttrs.image_url,
+                description: infoAttrs.description,
+                websites: infoAttrs.websites,
+                discord_url: infoAttrs.discord_url,
+                telegram_handle: infoAttrs.telegram_handle,
+                twitter_handle: infoAttrs.twitter_handle,
+                categories: infoAttrs.categories,
+                gt_score: infoAttrs.gt_score,
+                trust_score: infoAttrs.trust_score
+              });
+            }
+          } catch (infoError) {
+            console.warn(`Failed to fetch additional info for priority token ${address}:`, infoError);
+          }
+          
+          tokenMap.set(address.toLowerCase(), tokenInfo);
+          console.log(`Added priority token: ${tokenInfo.symbol}`);
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch priority token ${address}:`, error);
+      }
+    }
     
     // Process each pool to extract token information
     for (const pool of poolsData.data) {
@@ -476,17 +522,15 @@ export async function getTopTokens(): Promise<TopToken[]> {
         const tokenAddress = token.id.split('_')[1].toLowerCase();
         
         // Skip if we've already processed this token
-        if (tokenMap.has(tokenAddress)) continue;
-        
-        // Skip stablecoins and wrapped tokens
-        if (isStablecoin(token.symbol, tokenAddress) || isWrappedToken(token.symbol, tokenAddress)) {
+        if (tokenMap.has(tokenAddress)) {
+          console.log(`Skipping already processed token: ${token.symbol}`);
           continue;
         }
         
-        // Check cache first
-        const cached = tokenCache.get(tokenAddress);
-        if (cached && (now - cached.timestamp) < CACHE_DURATION) {
-          tokenMap.set(tokenAddress, cached.data);
+        // Skip stablecoins and wrapped tokens unless they're priority tokens
+        if (!PRIORITY_TOKENS.has(tokenAddress) && 
+            (isStablecoin(token.symbol, tokenAddress) || isWrappedToken(token.symbol, tokenAddress))) {
+          console.log(`Skipping ${isStablecoin(token.symbol, tokenAddress) ? 'stablecoin' : 'wrapped token'}: ${token.symbol}`);
           continue;
         }
         
@@ -501,62 +545,49 @@ export async function getTopTokens(): Promise<TopToken[]> {
           market_cap_usd: 0 // Will be enriched later
         };
 
+        // Try to get additional info
+        try {
+          const infoData = await fetchGeckoTerminal(`/networks/berachain/tokens/${tokenAddress}/info`);
+          if (infoData?.data?.attributes) {
+            const infoAttrs = infoData.data.attributes;
+            Object.assign(tokenInfo, {
+              image_url: infoAttrs.image_url,
+              description: infoAttrs.description,
+              websites: infoAttrs.websites,
+              discord_url: infoData.discord_url,
+              telegram_handle: infoAttrs.telegram_handle,
+              twitter_handle: infoAttrs.twitter_handle,
+              categories: infoAttrs.categories,
+              gt_score: infoAttrs.gt_score,
+              trust_score: infoAttrs.trust_score
+            });
+          }
+        } catch (infoError) {
+          console.warn(`Failed to fetch additional info for token ${tokenAddress}:`, infoError);
+        }
+
         // Update cache and token map
         tokenCache.set(tokenAddress, { data: tokenInfo, timestamp: now });
         tokenMap.set(tokenAddress, tokenInfo);
+        console.log(`Added new token: ${tokenInfo.symbol}`);
       }
     }
 
     // Convert map to array
     let tokens = Array.from(tokenMap.values());
-
-    // Enrich priority tokens with additional data in parallel
-    const priorityTokenPromises = priorityAddresses.map(async (address) => {
-      try {
-        const tokenResponse = await fetchGeckoTerminal(`/networks/berachain/tokens/${address}`);
-        if (!tokenResponse?.data?.attributes) return null;
-
-        const attrs = tokenResponse.data.attributes;
-        const existingToken = tokens.find(t => t.address.toLowerCase() === address.toLowerCase());
-        
-        if (existingToken) {
-          // Update with more accurate data
-          existingToken.market_cap_usd = attrs.market_cap_usd || attrs.fdv_usd || 0;
-          
-          // Try to get additional metadata
-          try {
-            const infoData = await fetchGeckoTerminal(`/networks/berachain/tokens/${address}/info`);
-            if (infoData?.data?.attributes) {
-              const infoAttrs = infoData.data.attributes;
-              Object.assign(existingToken, {
-                image_url: infoAttrs.image_url,
-                description: infoAttrs.description,
-                websites: infoAttrs.websites,
-                discord_url: infoAttrs.discord_url,
-                telegram_handle: infoAttrs.telegram_handle,
-                twitter_handle: infoAttrs.twitter_handle,
-                categories: infoAttrs.categories,
-                gt_score: infoAttrs.gt_score
-              });
-            }
-          } catch (infoError) {
-            console.warn(`Failed to fetch additional info for priority token ${address}:`, infoError);
-          }
-        }
-      } catch (error) {
-        console.warn(`Failed to enrich priority token ${address}:`, error);
-      }
-    });
-
-    // Wait for all priority token enrichment to complete
-    await Promise.all(priorityTokenPromises);
+    console.log(`Total tokens before filtering: ${tokens.length}`);
 
     // Filter and sort tokens
     tokens = tokens.filter(token => {
-      if (PRIORITY_TOKENS.has(token.address.toLowerCase())) return true;
-      return token.volume_24h >= 100000 && 
-             !isStablecoin(token.symbol, token.address) && 
-             !isWrappedToken(token.symbol, token.address);
+      if (PRIORITY_TOKENS.has(token.address.toLowerCase())) {
+        console.log(`Keeping priority token: ${token.symbol}`);
+        return true;
+      }
+      const hasEnoughVolume = token.volume_24h >= 100000;
+      if (!hasEnoughVolume) {
+        console.log(`Filtering out low volume token: ${token.symbol} (${token.volume_24h})`);
+      }
+      return hasEnoughVolume;
     }).sort((a, b) => {
       const aIsPriority = PRIORITY_TOKENS.has(a.address.toLowerCase());
       const bIsPriority = PRIORITY_TOKENS.has(b.address.toLowerCase());
@@ -564,6 +595,8 @@ export async function getTopTokens(): Promise<TopToken[]> {
       if (!aIsPriority && bIsPriority) return 1;
       return b.volume_24h - a.volume_24h;
     });
+
+    console.log(`Total tokens after filtering: ${tokens.length}`);
 
     // Take top 12 tokens
     const result = tokens.slice(0, 12);

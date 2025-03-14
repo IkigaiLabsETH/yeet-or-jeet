@@ -30,7 +30,12 @@ export function TopTokensGrid({ onTokenSelect }: { onTokenSelect: (address: stri
   
   const topTokensQuery = useQuery({
     queryKey: ["topTokens"],
-    queryFn: async () => getTopTokens(),
+    queryFn: async () => {
+      console.log("Fetching top tokens...");
+      const tokens = await getTopTokens();
+      console.log("Received tokens:", tokens);
+      return tokens;
+    },
     retry: 3,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30000),
     refetchInterval: 30000, // Refetch every 30 seconds
@@ -38,15 +43,30 @@ export function TopTokensGrid({ onTokenSelect }: { onTokenSelect: (address: stri
     staleTime: 15000, // Consider data stale after 15 seconds
     select: (data) => {
       // Additional data validation and transformation
-      return data?.filter((token: TopToken) => {
+      const validTokens = data?.filter((token: TopToken) => {
         // Ensure we have the minimum required data
-        return token.address && 
+        const isValid = token.address && 
                token.symbol && 
                token.name && 
                typeof token.price_usd !== 'undefined' &&
                typeof token.volume_24h !== 'undefined';
+               
+        if (!isValid) {
+          console.log("Filtering out invalid token:", token);
+        }
+        return isValid;
       });
+      console.log("Valid tokens after filtering:", validTokens);
+      return validTokens;
     }
+  });
+
+  // Log query state
+  console.log("Query state:", {
+    isLoading: topTokensQuery.isLoading,
+    isError: topTokensQuery.isError,
+    error: topTokensQuery.error,
+    dataLength: topTokensQuery.data?.length
   });
 
   const handleCopy = async (address: string, e: React.MouseEvent) => {
@@ -135,6 +155,9 @@ export function TopTokensGrid({ onTokenSelect }: { onTokenSelect: (address: stri
       </div>
     );
   }
+
+  // Log the tokens we're about to render
+  console.log("Rendering tokens:", topTokensQuery.data);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
