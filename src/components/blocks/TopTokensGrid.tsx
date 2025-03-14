@@ -31,8 +31,22 @@ export function TopTokensGrid({ onTokenSelect }: { onTokenSelect: (address: stri
   const topTokensQuery = useQuery({
     queryKey: ["topTokens"],
     queryFn: async () => getTopTokens(),
-    retry: 3, // Retry 3 times if the API call fails
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30000), // Exponential backoff
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30000),
+    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchOnWindowFocus: true,
+    staleTime: 15000, // Consider data stale after 15 seconds
+    select: (data) => {
+      // Additional data validation and transformation
+      return data?.filter((token: TopToken) => {
+        // Ensure we have the minimum required data
+        return token.address && 
+               token.symbol && 
+               token.name && 
+               typeof token.price_usd !== 'undefined' &&
+               typeof token.volume_24h !== 'undefined';
+      });
+    }
   });
 
   const handleCopy = async (address: string, e: React.MouseEvent) => {
@@ -131,13 +145,6 @@ export function TopTokensGrid({ onTokenSelect }: { onTokenSelect: (address: stri
             console.log(`Filtering out token with low volume: ${token.symbol}, volume: $${token.volume_24h.toLocaleString()}`);
             return false;
           }
-          
-          // Filter out specific tokens like HONEY and MOOLA
-          if (token.symbol === 'HONEY' || token.symbol === 'MOOLA' || token.symbol === 'MO') {
-            console.log(`Filtering out specific token: ${token.symbol}`);
-            return false;
-          }
-          
           return true;
         })
         .map((token: TopToken) => (
@@ -153,6 +160,7 @@ export function TopTokensGrid({ onTokenSelect }: { onTokenSelect: (address: stri
               className="w-full text-left bg-card border rounded-xl p-6 hover:border-active-border transition-all duration-200 hover:shadow-md"
             >
               <div className="flex items-center gap-4">
+                {/* Token Image with Enhanced Fallback */}
                 {token.image_url && !failedImages.has(token.address) ? (
                   <div className="relative size-12 rounded-full overflow-hidden ring-2 ring-background">
                     <Image 
@@ -175,11 +183,20 @@ export function TopTokensGrid({ onTokenSelect }: { onTokenSelect: (address: stri
                     loadingComponent={<Skeleton className="size-12 rounded-full" />}
                   />
                 )}
+                
                 <div className="flex-1 min-w-0">
+                  {/* Token Name and Price */}
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="font-semibold truncate">{token.name}</h3>
-                    <span className="font-medium">${Number(token.price_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</span>
+                    <span className="font-medium">
+                      ${Number(token.price_usd).toLocaleString(undefined, { 
+                        minimumFractionDigits: 2, 
+                        maximumFractionDigits: Number(token.price_usd) < 0.01 ? 8 : 6 
+                      })}
+                    </span>
                   </div>
+                  
+                  {/* Symbol and Price Change */}
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-sm text-muted-foreground">{token.symbol}</span>
                     <div className={cn(
@@ -194,21 +211,52 @@ export function TopTokensGrid({ onTokenSelect }: { onTokenSelect: (address: stri
                       {Math.abs(token.price_change_24h).toFixed(2)}%
                     </div>
                   </div>
+                  
+                  {/* Volume and Market Cap */}
                   <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                    <span>Vol: ${Math.round(token.volume_24h).toLocaleString()}</span>
-                    <span>MC: ${Math.round(token.market_cap_usd).toLocaleString()}</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>Vol: ${Math.round(token.volume_24h).toLocaleString()}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>24h Trading Volume</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>MC: ${Math.round(token.market_cap_usd).toLocaleString()}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Market Cap</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   
-                  {/* Additional DexScreener data - Liquidity */}
+                  {/* Liquidity */}
                   {token.liquidity_usd && (
                     <div className="flex items-center mt-2 text-xs text-muted-foreground">
-                      <DropletIcon className="size-3 mr-1" />
-                      <span>Liquidity: ${Math.round(token.liquidity_usd).toLocaleString()}</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center">
+                              <DropletIcon className="size-3 mr-1" />
+                              <span>Liq: ${Math.round(token.liquidity_usd).toLocaleString()}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Total Liquidity</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   )}
                   
-                  {/* Social links */}
-                  {(token.twitter_handle || token.websites?.length || token.telegram_handle || token.trust_score) && (
+                  {/* Social Links and Trust Score */}
+                  {(token.twitter_handle || token.websites?.length || token.telegram_handle || token.trust_score !== undefined) && (
                     <div className="flex items-center mt-3 pt-2 border-t border-border">
                       <div className="flex gap-2 flex-1">
                         {token.twitter_handle && (
@@ -225,7 +273,7 @@ export function TopTokensGrid({ onTokenSelect }: { onTokenSelect: (address: stri
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Twitter</p>
+                                <p>@{token.twitter_handle}</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -245,7 +293,7 @@ export function TopTokensGrid({ onTokenSelect }: { onTokenSelect: (address: stri
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Website</p>
+                                <p>{new URL(token.websites[0]).hostname}</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -272,12 +320,13 @@ export function TopTokensGrid({ onTokenSelect }: { onTokenSelect: (address: stri
                         )}
                       </div>
                       
+                      {/* Trust Score with Enhanced Styling */}
                       {token.trust_score !== undefined && (
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className={cn(
-                                "text-xs px-2 py-0.5 rounded-full",
+                                "text-xs px-2 py-0.5 rounded-full font-medium",
                                 token.trust_score >= 70 ? "bg-green-100 text-green-800" :
                                 token.trust_score >= 40 ? "bg-yellow-100 text-yellow-800" :
                                 "bg-red-100 text-red-800"
@@ -286,7 +335,11 @@ export function TopTokensGrid({ onTokenSelect }: { onTokenSelect: (address: stri
                               </div>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Trust Score</p>
+                              <p>
+                                {token.trust_score >= 70 ? "High Trust Score" :
+                                 token.trust_score >= 40 ? "Medium Trust Score" :
+                                 "Low Trust Score"}
+                              </p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -296,7 +349,7 @@ export function TopTokensGrid({ onTokenSelect }: { onTokenSelect: (address: stri
                 </div>
               </div>
               
-              {/* Token description tooltip */}
+              {/* Token Description */}
               {token.description && (
                 <TooltipProvider>
                   <Tooltip>
@@ -312,6 +365,8 @@ export function TopTokensGrid({ onTokenSelect }: { onTokenSelect: (address: stri
                 </TooltipProvider>
               )}
             </button>
+            
+            {/* Copy Address Button */}
             <Button
               variant="ghost"
               size="icon"
