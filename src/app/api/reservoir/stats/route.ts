@@ -40,6 +40,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const collectionId = searchParams.get('collectionId');
 
+    console.log('Fetching stats for collection:', collectionId);
+
     if (!collectionId) {
       return NextResponse.json({ error: 'Collection ID is required' }, { status: 400 });
     }
@@ -47,6 +49,7 @@ export async function GET(request: Request) {
     // Check rate limit
     const ip = request.headers.get('x-forwarded-for') || 'anonymous';
     if (isRateLimited(ip)) {
+      console.log('Rate limit exceeded for IP:', ip);
       return NextResponse.json(
         { error: 'Rate limit exceeded. Please try again later.' },
         { status: 429 }
@@ -59,30 +62,39 @@ export async function GET(request: Request) {
     const now = Date.now();
 
     if (cachedItem && (now - cachedItem.timestamp) < CACHE_TTL) {
+      console.log('Returning cached data for collection:', collectionId);
       return NextResponse.json(cachedItem.data);
     }
 
     // If not in cache or expired, fetch from Reservoir
     const reservoirApiKey = process.env.RESERVOIR_API_KEY;
     if (!reservoirApiKey) {
+      console.error('Reservoir API key is missing');
       throw new Error('Reservoir API key is not configured');
     }
 
-    const response = await fetch(
-      `https://api.reservoir.tools/collections/v7/${encodeURIComponent(collectionId)}/stats/v2`,
-      {
-        headers: {
-          'accept': '*/*',
-          'x-api-key': reservoirApiKey,
-        },
-      }
-    );
+    const apiUrl = `https://api.reservoir.tools/collections/v7/${encodeURIComponent(collectionId)}/stats/v2`;
+    console.log('Fetching from Reservoir API:', apiUrl);
+
+    const response = await fetch(apiUrl, {
+      headers: {
+        'accept': '*/*',
+        'x-api-key': reservoirApiKey,
+      },
+    });
 
     if (!response.ok) {
-      throw new Error(`Reservoir API Error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Reservoir API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`Reservoir API Error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('Raw Reservoir response:', JSON.stringify(data, null, 2));
 
     // Transform the data to match frontend expectations
     const transformedData = {
@@ -92,6 +104,8 @@ export async function GET(request: Request) {
       }
     };
 
+    console.log('Transformed data:', JSON.stringify(transformedData, null, 2));
+
     // Update cache
     cache.set(cacheKey, { data: transformedData, timestamp: now });
 
@@ -99,7 +113,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Collection stats error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch collection stats' },
+      { error: error instanceof Error ? error.message : 'Failed to fetch collection stats' },
       { status: 500 }
     );
   }
