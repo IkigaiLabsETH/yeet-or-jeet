@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { CURATED_TOKENS } from '@/lib/curatedTokens';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { TokenIcon, TokenProvider } from "thirdweb/react";
 import { thirdwebClient } from "@/lib/thirdweb-client";
 import { supportedChains } from "@/lib/supportedChains";
