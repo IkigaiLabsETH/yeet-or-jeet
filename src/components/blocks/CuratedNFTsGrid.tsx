@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import Image from "next/image";
 import { formatNumber } from "@/lib/utils";
 import { getFeedStats } from '@/lib/helpers/cielo';
+import { getCuratedCollectionStats } from '@/lib/reservoir';
 
 const CATEGORIES = ['All', 'Gen Art', 'AI', 'Icons', 'Photography'] as const;
 
@@ -52,43 +53,11 @@ export function CuratedNFTsGrid({ onCollectionSelect }: CuratedNFTsGridProps) {
           const collectionId = getCollectionIdentifier(nft);
           
           try {
-            // Using the collections/v7 endpoint
-            const response = await fetch(
-              `https://api.reservoir.tools/collections/v7/${encodeURIComponent(collectionId)}`,
-              {
-                headers: {
-                  'accept': '*/*',
-                  'x-api-key': process.env.NEXT_PUBLIC_RESERVOIR_API_KEY || '',
-                },
-              }
-            );
-
-            if (!response.ok) {
-              throw new Error(`Failed to fetch stats for ${nft.name}`);
-            }
-
-            const data = await response.json();
-            console.log(`Reservoir data for ${nft.name}:`, JSON.stringify(data, null, 2));
-
-            // Extract collection data from v7 response
-            const collection = data.collection;
-            if (!collection) {
-              throw new Error(`No collection data found for ${nft.name}`);
-            }
-
-            // Calculate market cap: floor price * total supply
-            const floorPrice = collection.floorAsk?.price?.amount?.native || 0;
-            const totalSupply = collection.tokenCount || 0;
-            const calculatedMarketCap = floorPrice * totalSupply;
-
+            const stats = await getCuratedCollectionStats(collectionId);
             return {
               id: nft.address,
               stats: {
-                floorPrice: floorPrice,
-                totalVolume: collection.volume?.allTime || 0,
-                marketCap: calculatedMarketCap,
-                volume24h: collection.volume?.["1day"] || 0,
-                imageUrl: collection.image || collection.imageUrl || null,
+                ...stats,
                 ...(feedStats || {})
               }
             };

@@ -493,4 +493,63 @@ export const getCollectionBids = async (
     console.error('Error fetching collection bids:', error);
     return { bids: [] };
   }
-}; 
+};
+
+/**
+ * Get stats for a curated collection using the collections/v7 endpoint
+ * @param collectionId Collection identifier (slug)
+ * @returns Collection stats and metadata
+ */
+export async function getCuratedCollectionStats(collectionId: string) {
+  try {
+    if (!collectionId) {
+      throw new Error('Collection ID is required');
+    }
+
+    const url = new URL(`${RESERVOIR_API_BASE}/collections/v7/${encodeURIComponent(collectionId)}`);
+    
+    const response = await fetch(url, {
+      headers: getHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Curated Collection Stats Error:', {
+        collectionId,
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      throw new Error(`Failed to fetch curated collection stats: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log(`Reservoir data for ${collectionId}:`, JSON.stringify(data, null, 2));
+
+    if (!data.collection) {
+      throw new Error(`No collection data found for ${collectionId}`);
+    }
+
+    const collection = data.collection;
+    const floorPrice = collection.floorAsk?.price?.amount?.native || 0;
+    const totalSupply = collection.tokenCount || 0;
+    const marketCap = floorPrice * totalSupply;
+
+    return {
+      floorPrice,
+      totalVolume: collection.volume?.allTime || 0,
+      marketCap,
+      volume24h: collection.volume?.["1day"] || 0,
+      imageUrl: collection.image || collection.imageUrl || null,
+      tokenCount: totalSupply,
+      name: collection.name,
+      description: collection.description,
+      totalSales: collection.salesCount || 0,
+      floorAsk: collection.floorAsk,
+      topBid: collection.topBid
+    };
+  } catch (error) {
+    console.error('Error fetching curated collection stats:', error);
+    throw error;
+  }
+} 
