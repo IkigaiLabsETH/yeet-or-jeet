@@ -12,7 +12,11 @@ const CATEGORIES = ['All', 'Gen Art', 'AI', 'Icons', 'Photography'] as const;
 interface CollectionStats {
   floorPrice: number;
   totalVolume: number;
+  marketCap: number;
+  volume24h: number;
   imageUrl: string | null;
+  winRate?: number;
+  pnl?: number;
 }
 
 interface CuratedNFTsGridProps {
@@ -21,6 +25,35 @@ interface CuratedNFTsGridProps {
 
 export function CuratedNFTsGrid({ onCollectionSelect }: CuratedNFTsGridProps) {
   const [selectedCategory, setSelectedCategory] = useState<typeof CATEGORIES[number]>('All');
+
+  const fetchCieloStats = async (collectionId: string) => {
+    try {
+      const response = await fetch(
+        `https://api.cielo.finance/v1/collections/${encodeURIComponent(collectionId)}`,
+        {
+          headers: {
+            'accept': '*/*',
+            'x-api-key': process.env.NEXT_PUBLIC_CIELO_API_KEY || '',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch Cielo stats`);
+      }
+
+      const data = await response.json();
+      console.log(`Cielo data for ${collectionId}:`, JSON.stringify(data, null, 2));
+      
+      return {
+        winRate: data.winRate,
+        pnl: data.pnl,
+      };
+    } catch (error) {
+      console.warn(`Error fetching Cielo stats:`, error);
+      return null;
+    }
+  };
 
   const { data: collectionStats, isLoading, error, refetch } = useQuery({
     queryKey: ["curated-nft-collections"],
@@ -49,7 +82,7 @@ export function CuratedNFTsGrid({ onCollectionSelect }: CuratedNFTsGridProps) {
             }
 
             const data = await response.json();
-            console.log(`Data for ${nft.name}:`, JSON.stringify(data, null, 2));
+            console.log(`Reservoir data for ${nft.name}:`, JSON.stringify(data, null, 2));
 
             // Extract collection data from v7 response
             const collection = data.collection;
@@ -57,12 +90,18 @@ export function CuratedNFTsGrid({ onCollectionSelect }: CuratedNFTsGridProps) {
               throw new Error(`No collection data found for ${nft.name}`);
             }
 
+            // Fetch Cielo stats
+            const cieloStats = await fetchCieloStats(collectionId);
+
             return {
               id: nft.address,
               stats: {
                 floorPrice: collection.floorAsk?.price?.amount?.native || 0,
                 totalVolume: collection.volume?.allTime || 0,
-                imageUrl: collection.image || collection.imageUrl || null
+                marketCap: collection.market?.marketCap || 0,
+                volume24h: collection.volume?.["24h"] || 0,
+                imageUrl: collection.image || collection.imageUrl || null,
+                ...(cieloStats || {})
               }
             };
           } catch (error) {
@@ -72,6 +111,8 @@ export function CuratedNFTsGrid({ onCollectionSelect }: CuratedNFTsGridProps) {
               stats: {
                 floorPrice: 0,
                 totalVolume: 0,
+                marketCap: 0,
+                volume24h: 0,
                 imageUrl: null
               }
             };
@@ -205,11 +246,39 @@ export function CuratedNFTsGrid({ onCollectionSelect }: CuratedNFTsGridProps) {
                 </p>
               </div>
               <div className="text-right">
+                <p className="text-muted-foreground">24h Volume</p>
+                <p className="font-medium">
+                  {formatNumber(collectionStats?.[nft.address]?.volume24h || 0)} ETH
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Market Cap</p>
+                <p className="font-medium">
+                  {formatNumber(collectionStats?.[nft.address]?.marketCap || 0)} ETH
+                </p>
+              </div>
+              <div className="text-right">
                 <p className="text-muted-foreground">Total Volume</p>
                 <p className="font-medium">
                   {formatNumber(collectionStats?.[nft.address]?.totalVolume || 0)} ETH
                 </p>
               </div>
+              {collectionStats?.[nft.address]?.winRate !== undefined && (
+                <div>
+                  <p className="text-muted-foreground">Win Rate</p>
+                  <p className="font-medium">
+                    {formatNumber(collectionStats[nft.address].winRate ?? 0)}%
+                  </p>
+                </div>
+              )}
+              {collectionStats?.[nft.address]?.pnl !== undefined && (
+                <div className="text-right">
+                  <p className="text-muted-foreground">P&L</p>
+                  <p className="font-medium">
+                    {formatNumber(collectionStats[nft.address].pnl ?? 0)} ETH
+                  </p>
+                </div>
+              )}
             </div>
           </Card>
         ))}
