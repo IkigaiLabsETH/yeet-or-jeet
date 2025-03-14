@@ -49,6 +49,7 @@ type Section = {
     price: string;
     marketCap: string;
     volume: string;
+    imageUrl?: string;
   };
   walletInfo?: {
     address: string;
@@ -71,6 +72,15 @@ type Screen =
         walletAddress: string;
       };
     };
+
+interface TokenInfo {
+  address: string;
+  priceUSD: string;
+  marketCapUSD: string;
+  volumeUSD: string;
+  chain: Chain;
+  imageUrl?: string;
+}
 
 export default function LandingPage() {
   const [screen, setScreen] = useState<Screen>({ id: "initial" });
@@ -294,25 +304,48 @@ function ResponseScreen(props: {
                "0.00"),
             marketCapUSD: verdictSection?.tokenInfo?.marketCap || 
               (() => {
-                // Try to get market cap from GeckoTerminal
+                // Try to get market cap directly from GeckoTerminal
                 const geckoMarketCap = info?.geckoTerminalData?.data?.attributes?.market_cap_usd;
-                if (geckoMarketCap && geckoMarketCap !== "0") return geckoMarketCap;
+                if (geckoMarketCap && !isNaN(parseFloat(geckoMarketCap)) && parseFloat(geckoMarketCap) > 0) {
+                  console.log("Using GeckoTerminal market cap:", geckoMarketCap);
+                  return geckoMarketCap;
+                }
 
                 // If not available, try to calculate it from total supply and price
                 const totalSupply = info?.geckoTerminalData?.data?.attributes?.total_supply;
                 const priceUSD = info?.geckoTerminalData?.data?.attributes?.price_usd;
-                if (totalSupply && priceUSD) {
-                  const calculatedMarketCap = (
-                    parseFloat(totalSupply) * parseFloat(priceUSD)
-                  ).toString();
-                  if (!isNaN(parseFloat(calculatedMarketCap))) return calculatedMarketCap;
+                const decimals = info?.geckoTerminalData?.data?.attributes?.decimals;
+
+                if (totalSupply && priceUSD && decimals !== undefined) {
+                  console.log("Calculating market cap from:", {
+                    totalSupply,
+                    priceUSD,
+                    decimals
+                  });
+
+                  try {
+                    // Convert total supply to actual number considering decimals
+                    const actualSupply = parseFloat(totalSupply) / Math.pow(10, decimals);
+                    const price = parseFloat(priceUSD);
+                    
+                    if (!isNaN(actualSupply) && !isNaN(price)) {
+                      const calculatedMarketCap = (actualSupply * price).toString();
+                      console.log("Calculated market cap:", calculatedMarketCap);
+                      return calculatedMarketCap;
+                    }
+                  } catch (error) {
+                    console.error("Error calculating market cap:", error);
+                  }
                 }
 
                 // Try DexScreener as fallback
                 const dexScreenerMarketCap = info?.dexScreenerData?.market_cap_usd?.toString();
-                if (dexScreenerMarketCap) return dexScreenerMarketCap;
+                if (dexScreenerMarketCap && !isNaN(parseFloat(dexScreenerMarketCap)) && parseFloat(dexScreenerMarketCap) > 0) {
+                  console.log("Using DexScreener market cap:", dexScreenerMarketCap);
+                  return dexScreenerMarketCap;
+                }
 
-                // Default to "0" if all else fails
+                console.log("No valid market cap found, defaulting to 0");
                 return "0";
               })(),
             volumeUSD: verdictSection?.tokenInfo?.volume || 
@@ -320,6 +353,7 @@ function ResponseScreen(props: {
                info?.dexScreenerData?.volume_24h?.toString() || 
                "0"),
             chain: props.chain,
+            imageUrl: info?.geckoTerminalData?.data?.attributes?.image_url,
           }}
           walletInfo={{
             address: props.walletAddress || "0x0000000000000000000000000000000000000000",

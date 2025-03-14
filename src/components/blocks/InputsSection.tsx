@@ -20,6 +20,7 @@ type TokenInfo = {
   marketCapUSD: string;
   volumeUSD: string;
   chain: Chain;
+  imageUrl?: string;
 };
 
 type WalletInfo = {
@@ -28,7 +29,7 @@ type WalletInfo = {
   chain: Chain;
 };
 
-export function TokenInfoCard(props: TokenInfo) {
+export function TokenInfoCard(props: TokenInfo & { imageUrl?: string }) {
   const explorer = props.chain.blockExplorers?.[0].url;
   const explorerLink = explorer
     ? `${explorer}/token/${props.address}`
@@ -64,13 +65,21 @@ export function TokenInfoCard(props: TokenInfo) {
         )}
       >
         {/* Left */}
-        <TokenIcon
-          className="size-16 rounded-full ring-2 ring-background shadow-lg"
-          fallbackComponent={
-            <div className="size-16 rounded-full from-blue-800 to-blue-500 bg-gradient-to-br ring-2 ring-background shadow-lg" />
-          }
-          loadingComponent={<Skeleton className="size-16 rounded-full" />}
-        />
+        {props.imageUrl ? (
+          <img 
+            src={props.imageUrl} 
+            alt={tokenName?.toString() || "Token icon"}
+            className="size-16 rounded-full ring-2 ring-background shadow-lg object-cover"
+          />
+        ) : (
+          <TokenIcon
+            className="size-16 rounded-full ring-2 ring-background shadow-lg"
+            fallbackComponent={
+              <div className="size-16 rounded-full from-blue-800 to-blue-500 bg-gradient-to-br ring-2 ring-background shadow-lg" />
+            }
+            loadingComponent={<Skeleton className="size-16 rounded-full" />}
+          />
+        )}
 
         {/* right */}
         <div className="flex flex-col gap-3 grow">
