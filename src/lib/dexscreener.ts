@@ -301,6 +301,9 @@ export async function getTopTokens(limit = 12): Promise<DexScreenerToken[]> {
             continue;
           }
           
+          // Get the token image URL based on the address
+          const imageUrl = `https://raw.githubusercontent.com/berachain/assets/main/${pair.baseToken.symbol.toLowerCase()}-logo.png`;
+          
           tokenMap.set(baseAddress, {
             address: baseAddress,
             name: pair.baseToken.name || "Unknown",
@@ -310,7 +313,8 @@ export async function getTopTokens(limit = 12): Promise<DexScreenerToken[]> {
             price_change_24h: pair.priceChange?.h24 || 0,
             market_cap_usd: pair.marketCap || pair.fdv || 0,
             liquidity_usd: pair.liquidity?.usd || 0,
-            fdv_usd: pair.fdv || 0
+            fdv_usd: pair.fdv || 0,
+            image_url: imageUrl
           });
         }
         
@@ -328,6 +332,9 @@ export async function getTopTokens(limit = 12): Promise<DexScreenerToken[]> {
           // For quote tokens, we need to calculate the price differently
           const quotePrice = pair.priceUsd ? (1 / parseFloat(pair.priceUsd)).toString() : "0";
           
+          // Get the token image URL based on the address
+          const imageUrl = `https://raw.githubusercontent.com/berachain/assets/main/${pair.quoteToken.symbol.toLowerCase()}-logo.png`;
+          
           tokenMap.set(quoteAddress, {
             address: quoteAddress,
             name: pair.quoteToken.name || "Unknown",
@@ -337,7 +344,8 @@ export async function getTopTokens(limit = 12): Promise<DexScreenerToken[]> {
             price_change_24h: -1 * (pair.priceChange?.h24 || 0), // Invert price change for quote token
             market_cap_usd: 0, // We don't have this data for quote tokens
             liquidity_usd: pair.liquidity?.usd || 0,
-            fdv_usd: 0 // We don't have this data for quote tokens
+            fdv_usd: 0, // We don't have this data for quote tokens
+            image_url: imageUrl
           });
         }
       } catch (pairError) {

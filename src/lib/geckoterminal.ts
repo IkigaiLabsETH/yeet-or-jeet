@@ -689,16 +689,8 @@ function getHardcodedTokens(): TopToken[] {
       price_usd: "3.25",
       volume_24h: 5000000,
       price_change_24h: 2.5,
-      market_cap_usd: 325000000
-    },
-    {
-      address: "0x36e9fe653e673fda3857dbe5afbc884af8a316a2",
-      name: "Honey",
-      symbol: "HONEY",
-      price_usd: "0.95",
-      volume_24h: 2800000,
-      price_change_24h: 1.8,
-      market_cap_usd: 95000000
+      market_cap_usd: 325000000,
+      image_url: "https://raw.githubusercontent.com/berachain/assets/main/chain-logo.png"
     },
     {
       address: "0x6536cead649249cae42fc9bfb1f999429b3ec755",
@@ -707,7 +699,8 @@ function getHardcodedTokens(): TopToken[] {
       price_usd: "0.125",
       volume_24h: 2500000,
       price_change_24h: 5.2,
-      market_cap_usd: 12500000
+      market_cap_usd: 12500000,
+      image_url: "https://raw.githubusercontent.com/berachain/assets/main/nav-logo.png"
     },
     {
       address: "0x047b41a14f0bef681b94f570479ae7208e577a0c",
@@ -716,7 +709,98 @@ function getHardcodedTokens(): TopToken[] {
       price_usd: "0.045",
       volume_24h: 950000,
       price_change_24h: 12.5,
-      market_cap_usd: 4500000
+      market_cap_usd: 4500000,
+      image_url: "https://raw.githubusercontent.com/berachain/assets/main/him-logo.png"
+    },
+    {
+      address: "0x8f06863df59a042bcc2c86cc8ca1709ec1ee316b",
+      name: "StakedBera",
+      symbol: "STGBERA",
+      price_usd: "3.45",
+      volume_24h: 2200000,
+      price_change_24h: 3.2,
+      market_cap_usd: 34500000,
+      image_url: "https://raw.githubusercontent.com/berachain/assets/main/stgbera-logo.png"
+    },
+    {
+      address: "0xa452810a4215fccc834ed241e6667f519b9856ec",
+      name: "BergB",
+      symbol: "BRGB",
+      price_usd: "0.15",
+      volume_24h: 850000,
+      price_change_24h: -1.8,
+      market_cap_usd: 1500000,
+      image_url: "https://raw.githubusercontent.com/berachain/assets/main/brgb-logo.png"
+    },
+    {
+      address: "0x5c43a5fef2b056934478373a53d1cb08030fd382",
+      name: "BeraDoge",
+      symbol: "BERADOGE",
+      price_usd: "0.0025",
+      volume_24h: 750000,
+      price_change_24h: 8.5,
+      market_cap_usd: 250000,
+      image_url: "https://raw.githubusercontent.com/berachain/assets/main/beradoge-logo.png"
+    },
+    {
+      address: "0x1f7210257fa157227d09449229a9266b0d581337",
+      name: "Beramo",
+      symbol: "BERAMO",
+      price_usd: "0.155",
+      volume_24h: 720000,
+      price_change_24h: -4.2,
+      market_cap_usd: 15500000,
+      image_url: "https://raw.githubusercontent.com/berachain/assets/main/beramo-logo.png"
+    },
+    {
+      address: "0xb749584f9fc418cf905d54f462fdbfdc7462011b",
+      name: "Berachain Meme",
+      symbol: "BM",
+      price_usd: "0.0025",
+      volume_24h: 650000,
+      price_change_24h: 8.9,
+      market_cap_usd: 250000,
+      image_url: "https://raw.githubusercontent.com/berachain/assets/main/bm-logo.png"
+    },
+    {
+      address: "0x949185d3be66775ea648f4a306740ea9eff9c567",
+      name: "Berachain Pepe",
+      symbol: "PEPE",
+      price_usd: "0.00015",
+      volume_24h: 620000,
+      price_change_24h: 15.3,
+      market_cap_usd: 150000,
+      image_url: "https://raw.githubusercontent.com/berachain/assets/main/pepe-logo.png"
+    },
+    {
+      address: "0xb8b1af593dc37b33a2c87c8db1c9051fc32858b7",
+      name: "Ramen",
+      symbol: "RAMEN",
+      price_usd: "0.075",
+      volume_24h: 580000,
+      price_change_24h: -1.2,
+      market_cap_usd: 7500000,
+      image_url: "https://raw.githubusercontent.com/berachain/assets/main/ramen-logo.png"
+    },
+    {
+      address: "0x08a38caa631de329ff2dad1656ce789f31af3142",
+      name: "Yeet",
+      symbol: "YEET",
+      price_usd: "0.0015",
+      volume_24h: 550000,
+      price_change_24h: 15.3,
+      market_cap_usd: 150000,
+      image_url: "https://raw.githubusercontent.com/berachain/assets/main/yeet-logo.png"
+    },
+    {
+      address: "0xb2f776e9c1c926c4b2e54182fac058da9af0b6a5",
+      name: "Henlo",
+      symbol: "HENLO",
+      price_usd: "0.0095",
+      volume_24h: 520000,
+      price_change_24h: 7.2,
+      market_cap_usd: 950000,
+      image_url: "https://raw.githubusercontent.com/berachain/assets/main/henlo-logo.png"
     }
   ];
   
