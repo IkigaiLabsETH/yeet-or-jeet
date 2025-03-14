@@ -3,11 +3,13 @@ import { type GeckoTerminalData, getGeckoTerminalData } from "./geckoterminal";
 import { calculateGrowthScore } from "./growth-score";
 import { getHourlyTransferCount, type TransferCount } from "./insight";
 import { getTokenInfo, type DexScreenerToken } from "../../lib/dexscreener";
+import { getCoinGeckoData, type CoinGeckoData } from "./coingecko";
 
 export type StartingData = {
   contractABI?: string;
   geckoTerminalData?: GeckoTerminalData;
   dexScreenerData?: DexScreenerToken;
+  coinGeckoData?: CoinGeckoData;
   growthScore?: number;
   hourlyTransferCounts?: TransferCount[];
   chainId: number;
@@ -142,19 +144,27 @@ export const gatherStartingData = async (
   try {
     console.log("Starting data gathering for token:", tokenAddress);
     
-    // Try to get data from both sources, but prioritize GeckoTerminal
-    let hourlyTransferCounts, contractABI, geckoTerminalData, dexScreenerTokenInfo;
+    // Try to get data from all sources
+    let hourlyTransferCounts, contractABI, geckoTerminalData, dexScreenerTokenInfo, coinGeckoData;
     
     try {
-      // First try to get GeckoTerminal data (primary source)
-      geckoTerminalData = await getGeckoTerminalData(chainId, tokenAddress).catch(err => {
-        console.warn("Failed to get GeckoTerminal data:", err);
+      // Try CoinGecko first for known tokens
+      coinGeckoData = await getCoinGeckoData(tokenAddress).catch(err => {
+        console.warn("Failed to get CoinGecko data:", err);
         return undefined;
       });
+
+      // Then try GeckoTerminal if needed
+      if (!coinGeckoData) {
+        geckoTerminalData = await getGeckoTerminalData(chainId, tokenAddress).catch(err => {
+          console.warn("Failed to get GeckoTerminal data:", err);
+          return undefined;
+        });
+      }
       
-      // Only try DexScreener if GeckoTerminal fails (fallback)
-      if (!geckoTerminalData) {
-        console.log("GeckoTerminal data not available, trying DexScreener as fallback");
+      // Only try DexScreener if both fail
+      if (!coinGeckoData && !geckoTerminalData) {
+        console.log("CoinGecko and GeckoTerminal data not available, trying DexScreener as fallback");
         dexScreenerTokenInfo = await getTokenInfo(tokenAddress).catch(err => {
           console.warn("Failed to get DexScreener data:", err);
           return null;
@@ -184,13 +194,14 @@ export const gatherStartingData = async (
     console.log("Data gathering results:", {
       hasHourlyTransferCounts: !!hourlyTransferCounts,
       hasContractABI: !!contractABI,
+      hasCoinGeckoData: !!coinGeckoData,
       hasGeckoTerminalData: !!geckoTerminalData,
       hasDexScreenerData: !!dexScreenerData,
     });
 
-    // Use hardcoded data if both APIs failed
-    if (!geckoTerminalData && !dexScreenerData) {
-      console.warn("Both GeckoTerminal and DexScreener APIs failed, using hardcoded data");
+    // Use hardcoded data if all APIs failed
+    if (!coinGeckoData && !geckoTerminalData && !dexScreenerData) {
+      console.warn("All APIs failed, using hardcoded data");
       const hardcodedData = getHardcodedTokenData(tokenAddress);
       
       const growthScore = calculateGrowthScore(hourlyTransferCounts || []);
@@ -213,6 +224,7 @@ export const gatherStartingData = async (
       tokenAddress,
       userWalletAddress,
       contractABI,
+      coinGeckoData,
       geckoTerminalData,
       dexScreenerData,
       growthScore,

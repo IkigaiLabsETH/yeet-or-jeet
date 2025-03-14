@@ -295,7 +295,13 @@ function ResponseScreen(props: {
                "0.00"),
             marketCapUSD: verdictSection?.tokenInfo?.marketCap || 
               (() => {
-                // Try to get market cap directly from GeckoTerminal
+                // First try CoinGecko data for WBERA
+                if (info?.coinGeckoData?.market_data?.market_cap?.usd) {
+                  console.log("Using CoinGecko market cap:", info.coinGeckoData.market_data.market_cap.usd);
+                  return info.coinGeckoData.market_data.market_cap.usd.toString();
+                }
+
+                // Then try GeckoTerminal
                 const geckoMarketCap = info?.geckoTerminalData?.data?.attributes?.market_cap_usd;
                 if (geckoMarketCap && !isNaN(parseFloat(geckoMarketCap)) && parseFloat(geckoMarketCap) > 0) {
                   console.log("Using GeckoTerminal market cap:", geckoMarketCap);
@@ -340,9 +346,29 @@ function ResponseScreen(props: {
                 return "0";
               })(),
             volumeUSD: verdictSection?.tokenInfo?.volume || 
-              (info?.geckoTerminalData?.data?.attributes?.volume_usd?.h24 || 
-               info?.dexScreenerData?.volume_24h?.toString() || 
-               "0"),
+              (() => {
+                // First try CoinGecko data for WBERA
+                if (info?.coinGeckoData?.market_data?.total_volume?.usd) {
+                  console.log("Using CoinGecko volume:", info.coinGeckoData.market_data.total_volume.usd);
+                  return info.coinGeckoData.market_data.total_volume.usd.toString();
+                }
+
+                // Then try GeckoTerminal
+                const geckoVolume = info?.geckoTerminalData?.data?.attributes?.volume_usd?.h24;
+                if (geckoVolume) {
+                  console.log("Using GeckoTerminal volume:", geckoVolume);
+                  return geckoVolume;
+                }
+
+                // Finally try DexScreener
+                const dexScreenerVolume = info?.dexScreenerData?.volume_24h?.toString();
+                if (dexScreenerVolume) {
+                  console.log("Using DexScreener volume:", dexScreenerVolume);
+                  return dexScreenerVolume;
+                }
+
+                return "0";
+              })(),
             chain: props.chain,
           }}
           walletInfo={{
