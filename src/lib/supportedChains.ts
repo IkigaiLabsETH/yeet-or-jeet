@@ -2,7 +2,7 @@ import type { Chain } from "thirdweb";
 
 export const berachain: Chain = {
   id: 80094,
-  rpc: "https://80094.rpc.thirdweb.com/",
+  rpc: "https://80094.rpc.thirdweb.com",
   nativeCurrency: {
     name: "BERA",
     symbol: "BERA",
@@ -25,7 +25,7 @@ export const berachain: Chain = {
 
 const ethereum: Chain = {
   id: 1,
-  rpc: "https://eth.llamarpc.com",
+  rpc: "https://1.rpc.thirdweb.com",
   nativeCurrency: {
     name: "Ethereum",
     symbol: "ETH",
@@ -214,4 +214,5 @@ export const supportedChains: Chain[] = [
   celo,
   zksync, */
 ];
+
 export const defaultSelectedChain = berachain;
