@@ -23,7 +23,7 @@ const ethereumChain: Chain = {
     symbol: "ETH",
     decimals: 18,
   },
-  rpc: "https://ethereum.rpc.thirdweb.com"
+  rpc: "https://1.rpc.thirdweb.com"
 } as const;
 
 type NebulaTxData = {

@@ -489,5 +489,5 @@ function getChainName(chainId: number): string {
     // 42220: "celo",
     // 324: "zksync",
   };
-  return chainMap[chainId] || "berachain";
+  return chainMap[chainId] || "ethereum";
 }

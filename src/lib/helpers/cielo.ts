@@ -12,37 +12,21 @@ interface TotalStats {
 }
 
 interface TokenPnL {
-  num_swaps: number;
+  token: string;
   total_buy_usd: number;
-  total_buy_amount: number;
   total_sell_usd: number;
-  total_sell_amount: number;
-  average_buy_price: number;
-  average_sell_price: number;
   total_pnl_usd: number;
   roi_percentage: number;
-  unrealized_pnl_usd: number;
-  unrealized_roi_percentage: number;
-  token_price: number;
-  token_address: string;
-  token_symbol: string;
-  token_name: string;
-  chain: string;
-  is_honeypot: boolean;
+  num_swaps: number;
+  average_buy_price: number;
+  average_sell_price: number;
   first_trade: number;
   last_trade: number;
+  is_honeypot: boolean;
 }
 
 interface TokenPnLResponse {
-  status: string;
-  data: {
-    items: TokenPnL[];
-    paging: {
-      total_rows_in_page: number;
-      has_next_page: boolean;
-      next_object: string;
-    };
-  };
+  data: TokenPnL;
 }
 
 interface TotalStatsResponse {
@@ -63,6 +47,55 @@ export async function getWalletStats(
   chain: string,
   timeframe: "1d" | "7d" | "30d" | "max" = "max",
 ): Promise<TotalStats | null> {
+  // If chain is berachain (80094), use Thirdweb
+  if (chain === "berachain") {
+    try {
+      // Import required functions from thirdweb
+      const { getWalletBalance } = await import("thirdweb/wallets");
+      const { createThirdwebClient } = await import("thirdweb");
+
+      // Create Thirdweb client
+      const client = createThirdwebClient({
+        clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID || "",
+      });
+
+      // Get native token balance
+      const balance = await getWalletBalance({
+        address: walletAddress,
+        client,
+        chain: {
+          id: 80094,
+          name: "Berachain",
+          nativeCurrency: {
+            name: "BERA",
+            symbol: "BERA",
+            decimals: 18,
+          },
+          rpc: "https://rpc.berachain.com",
+        },
+      });
+
+      // Since we don't have historical data for Berachain yet,
+      // we'll return a simplified stats object with just the current balance
+      return {
+        wallet: walletAddress,
+        realized_pnl_usd: 0,
+        realized_roi_percentage: 0,
+        tokens_traded: 0,
+        unrealized_pnl_usd: Number(balance?.value || 0),
+        unrealized_roi_percentage: 0,
+        winrate: 0,
+        average_holding_time: 0,
+        combined_pnl_usd: Number(balance?.value || 0),
+        combined_roi_percentage: 0,
+      };
+    } catch (error) {
+      console.error("Error fetching Berachain wallet stats:", error);
+      return null;
+    }
+  }
+
+  // For other chains, use Cielo
   if (!CIELO_API_KEY) {
     console.warn("CIELO_API_KEY is not set. Skipping wallet stats fetch.");
     return null;
@@ -113,24 +146,66 @@ export async function getWalletStats(
 export async function getTokenPnL(
   walletAddress: string,
   tokenAddress: string,
-  chain?: string,
-  timeframe: "1d" | "7d" | "30d" | "max" = "max",
+  chain: string,
 ): Promise<TokenPnL | null> {
+  // If chain is berachain (80094), use Thirdweb
+  if (chain === "berachain") {
+    try {
+      // Import required functions from thirdweb
+      const { getWalletBalance } = await import("thirdweb/wallets");
+      const { createThirdwebClient } = await import("thirdweb");
+
+      // Create Thirdweb client
+      const client = createThirdwebClient({
+        clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID || "",
+      });
+
+      // Get token balance
+      const balance = await getWalletBalance({
+        address: walletAddress,
+        client,
+        chain: {
+          id: 80094,
+          name: "Berachain",
+          nativeCurrency: {
+            name: "BERA",
+            symbol: "BERA",
+            decimals: 18,
+          },
+          rpc: "https://rpc.berachain.com",
+        },
+        tokenAddress,
+      });
+
+      // Since we don't have historical data for Berachain yet,
+      // we'll return a simplified PnL object with just the current balance
+      return {
+        token: tokenAddress,
+        total_buy_usd: 0,
+        total_sell_usd: 0,
+        total_pnl_usd: 0,
+        roi_percentage: 0,
+        num_swaps: 0,
+        average_buy_price: 0,
+        average_sell_price: 0,
+        first_trade: Math.floor(Date.now() / 1000),
+        last_trade: Math.floor(Date.now() / 1000),
+        is_honeypot: false,
+      };
+    } catch (error) {
+      console.error("Error fetching Berachain token PnL:", error);
+      return null;
+    }
+  }
+
+  // For other chains, use Cielo
   if (!CIELO_API_KEY) {
     console.warn("CIELO_API_KEY is not set. Skipping token PnL fetch.");
     return null;
   }
 
   try {
-    const params = new URLSearchParams({
-      timeframe,
-      token: tokenAddress,
-      ...(chain && { chains: chain }),
-    });
-
-    const url = `${CIELO_API_BASE}/${walletAddress}/pnl/tokens?${params}`;
-    console.log("Fetching token PnL:", url);
-
+    const url = `${CIELO_API_BASE}/${walletAddress}/pnl/token/${tokenAddress}`;
     const response = await fetch(url, {
       headers: {
         accept: "application/json",
@@ -139,18 +214,18 @@ export async function getTokenPnL(
     });
 
     if (!response.ok) {
+      const errorResponse = await response.text();
       console.error("Failed to fetch token PnL:", {
         status: response.status,
         statusText: response.statusText,
         url,
-        responseText: await response.text(),
+        errorResponse,
       });
       return null;
     }
 
     const data: TokenPnLResponse = await response.json();
-    console.log("Token PnL response:", data);
-    return data.data.items[0] || null;
+    return data.data;
   } catch (error) {
     console.error("Error fetching token PnL:", error);
     return null;
