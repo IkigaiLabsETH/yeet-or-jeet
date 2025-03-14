@@ -34,6 +34,21 @@ interface TotalStatsResponse {
   data: TotalStats;
 }
 
+interface CieloTrade {
+  chain: string;
+  usdValue: number;
+  profit: number;
+}
+
+interface CieloFeedResponse {
+  trades: CieloTrade[];
+}
+
+interface CieloFeedStats {
+  winRate: number;
+  pnl: number;
+}
+
 const CIELO_API_KEY = process.env.CIELO_API_KEY;
 
 if (!CIELO_API_KEY) {
@@ -231,6 +246,62 @@ export async function getTokenPnL(
     return data.data;
   } catch (error) {
     console.error("Error fetching token PnL:", error);
+    return null;
+  }
+}
+
+export async function getFeedStats(): Promise<CieloFeedStats | null> {
+  if (!CIELO_API_KEY) {
+    console.warn("CIELO_API_KEY is not set. Feed stats will be disabled.");
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      `${CIELO_API_BASE}/feed?` + 
+      new URLSearchParams({
+        limit: '100',
+        chains: 'ethereum',
+        minUsdValue: '1000',
+        newTrades: 'true',
+      }),
+      {
+        headers: {
+          accept: 'application/json',
+          'x-api-key': CIELO_API_KEY,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorResponse = await response.text();
+      console.error("Failed to fetch feed stats:", {
+        status: response.status,
+        statusText: response.statusText,
+        errorResponse,
+      });
+      return null;
+    }
+
+    const data = await response.json() as CieloFeedResponse;
+    console.log("Cielo feed response:", data);
+
+    // Process feed data to get relevant stats
+    const trades = data.trades || [];
+    const ethTrades = trades.filter(trade => trade.chain === 'ethereum');
+    
+    // Calculate basic stats from trades
+    const totalValue = ethTrades.reduce((sum, trade) => sum + (trade.usdValue || 0), 0);
+    const profitableTrades = ethTrades.filter(trade => trade.profit > 0);
+    const winRate = ethTrades.length > 0 ? (profitableTrades.length / ethTrades.length) * 100 : 0;
+    const pnl = ethTrades.reduce((sum, trade) => sum + (trade.profit || 0), 0);
+
+    return {
+      winRate,
+      pnl
+    };
+  } catch (error) {
+    console.error("Error fetching feed stats:", error);
     return null;
   }
 }

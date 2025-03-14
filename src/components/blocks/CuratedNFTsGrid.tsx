@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import Image from "next/image";
 import { formatNumber } from "@/lib/utils";
+import { getFeedStats } from '@/lib/helpers/cielo';
 
 const CATEGORIES = ['All', 'Gen Art', 'AI', 'Icons', 'Photography'] as const;
 
@@ -23,59 +24,28 @@ interface CuratedNFTsGridProps {
   onCollectionSelect: (address: string) => void;
 }
 
+interface CieloTrade {
+  chain: string;
+  usdValue: number;
+  profit: number;
+}
+
+interface CieloFeedResponse {
+  trades: CieloTrade[];
+}
+
 export function CuratedNFTsGrid({ onCollectionSelect }: CuratedNFTsGridProps) {
   const [selectedCategory, setSelectedCategory] = useState<typeof CATEGORIES[number]>('All');
-
-  const fetchCieloStats = async (collectionId: string) => {
-    try {
-      // Collections endpoint - requires paid account
-      // const response = await fetch(
-      //   `https://api.cielo.finance/v1/collections/${encodeURIComponent(collectionId)}`,
-      //   {
-      //     headers: {
-      //       'accept': '*/*',
-      //       'x-api-key': process.env.NEXT_PUBLIC_CIELO_API_KEY || '',
-      //     },
-      //   }
-      // );
-
-      // Using feed endpoint which is available on free plan
-      const response = await fetch(
-        `https://feed-api.cielo.finance/api/v1/feed?limit=100`,
-        {
-          headers: {
-            'accept': '*/*',
-            'x-api-key': process.env.NEXT_PUBLIC_CIELO_API_KEY || '',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch Cielo stats`);
-      }
-
-      const data = await response.json();
-      console.log(`Cielo feed data:`, JSON.stringify(data, null, 2));
-      
-      // TODO: Once we have paid account, uncomment this
-      // return {
-      //   winRate: data.winRate,
-      //   pnl: data.pnl,
-      // };
-
-      // For now, return null since we can't get collection-specific stats
-      return null;
-    } catch (error) {
-      console.warn(`Error fetching Cielo stats:`, error);
-      return null;
-    }
-  };
 
   const { data: collectionStats, isLoading, error, refetch } = useQuery({
     queryKey: ["curated-nft-collections"],
     queryFn: async () => {
       try {
         console.log('Fetching stats for curated collections...');
+        
+        // Fetch Cielo feed stats once for all collections
+        const feedStats = await getFeedStats();
+        console.log('Cielo feed stats:', feedStats);
         
         // Fetch stats for all collections in parallel
         const statsPromises = CURATED_NFTS.map(async (nft) => {
@@ -106,18 +76,20 @@ export function CuratedNFTsGrid({ onCollectionSelect }: CuratedNFTsGridProps) {
               throw new Error(`No collection data found for ${nft.name}`);
             }
 
-            // Fetch Cielo stats
-            const cieloStats = await fetchCieloStats(collectionId);
+            // Calculate market cap: floor price * total supply
+            const floorPrice = collection.floorAsk?.price?.amount?.native || 0;
+            const totalSupply = collection.tokenCount || 0;
+            const calculatedMarketCap = floorPrice * totalSupply;
 
             return {
               id: nft.address,
               stats: {
-                floorPrice: collection.floorAsk?.price?.amount?.native || 0,
+                floorPrice: floorPrice,
                 totalVolume: collection.volume?.allTime || 0,
-                marketCap: collection.market?.marketCap || 0,
-                volume24h: collection.volume?.["24h"] || 0,
+                marketCap: calculatedMarketCap,
+                volume24h: collection.volume?.["1day"] || 0,
                 imageUrl: collection.image || collection.imageUrl || null,
-                ...(cieloStats || {})
+                ...(feedStats || {})
               }
             };
           } catch (error) {
