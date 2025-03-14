@@ -440,10 +440,24 @@ function ResponseScreen(props: {
                   <div className="prose prose-lg dark:prose-invert max-w-none">
                     <div className="space-y-8">
                       <MarkdownRenderer 
-                        markdownText={detailsSection.content?.split('##').map((section, index) => {
-                          if (index === 0) return section.trim();
-                          return `\n\n## ${section.trim()}`;
-                        }).join('\n\n') || ""} 
+                        markdownText={(detailsSection.content || '').split('\n').map((line, index) => {
+                          // Remove any existing markdown headers
+                          line = line.replace(/^#+\s*/, '');
+                          
+                          // Add proper markdown headers for sections
+                          if (line.includes('Market Analysis')) {
+                            return `## ${line}`;
+                          } else if (line.includes('Liquidity Analysis') || 
+                                   line.includes('Technical Indicators') ||
+                                   line.includes('Strengths') ||
+                                   line.includes('Risk Factors') ||
+                                   line.includes('Strategy Rationale') ||
+                                   line.includes('Key Metrics')) {
+                            return `\n## ${line}`;
+                          }
+                          return line;
+                        }).join('\n')} 
+                        skipHtml={true}
                       />
                     </div>
                   </div>
