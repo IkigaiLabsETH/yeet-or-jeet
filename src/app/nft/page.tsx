@@ -13,6 +13,8 @@ import { ChevronLeft } from "lucide-react";
 import { getNFTAnalysis } from "../server-actions/getNFTAnalysis";
 import { NFTGrid } from "../../components/blocks/NFTGrid";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CuratedNFTsGrid } from "../../components/blocks/CuratedNFTsGrid";
 
 // Define Ethereum chain for NFTs
 const ethereumChain: Chain = {
@@ -131,30 +133,46 @@ function NFTLandingScreen({ onSubmit }: { onSubmit: (values: { nftAddress: strin
       </div>
 
       <div className="space-y-8">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-tight">Top NFT Collections</h2>
-              <p className="text-muted-foreground mt-1">Highest 24h volume on Ethereum</p>
-            </div>
-            {account && (
-              <p className="text-sm text-muted-foreground">
-                Click collection to analyze it
-              </p>
-            )}
-          </div>
-        </div>
-        
         {!account ? (
           <div className="rounded-xl border-2 border-dashed p-8 text-center">
             <p className="text-muted-foreground">Connect your wallet to analyze NFT collections</p>
           </div>
         ) : (
-          <NFTGrid 
-            onCollectionSelect={(address) => {
-              onSubmit({ nftAddress: address });
-            }} 
-          />
+          <Tabs defaultValue="top" className="space-y-8">
+            <div className="flex items-center justify-between">
+              <TabsList>
+                <TabsTrigger value="top">Top Collections</TabsTrigger>
+                <TabsTrigger value="curated">Curated List</TabsTrigger>
+              </TabsList>
+              <p className="text-sm text-muted-foreground">
+                Click collection to analyze it
+              </p>
+            </div>
+
+            <TabsContent value="top" className="space-y-4">
+              <div>
+                <h2 className="text-2xl font-semibold tracking-tight">Top NFT Collections</h2>
+                <p className="text-muted-foreground mt-1">Highest 24h volume on Ethereum</p>
+              </div>
+              <NFTGrid 
+                onCollectionSelect={(address) => {
+                  onSubmit({ nftAddress: address });
+                }} 
+              />
+            </TabsContent>
+
+            <TabsContent value="curated" className="space-y-4">
+              <div>
+                <h2 className="text-2xl font-semibold tracking-tight">Curated Collection List</h2>
+                <p className="text-muted-foreground mt-1">Hand-picked NFT collections on Ethereum</p>
+              </div>
+              <CuratedNFTsGrid 
+                onCollectionSelect={(address) => {
+                  onSubmit({ nftAddress: address });
+                }}
+              />
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </main>
