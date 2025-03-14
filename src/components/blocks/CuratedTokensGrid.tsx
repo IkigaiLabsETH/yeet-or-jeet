@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { CURATED_TOKENS } from '@/lib/curatedTokens';
 import { Button } from '@/components/ui/button';
 import { TokenIcon, TokenProvider } from "thirdweb/react";
@@ -40,23 +40,41 @@ export function CuratedTokensGrid({ onTokenSelect }: CuratedTokensGridProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Filter tokens based on category and search query
-  const filteredTokens = CURATED_TOKENS.filter(token => {
-    const matchesCategory = selectedCategory === 'All' || token.category === selectedCategory;
-    if (!matchesCategory) return false;
-    
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return token.name.toLowerCase().includes(query) || 
-           token.symbol.toLowerCase().includes(query) ||
-           token.address.toLowerCase().includes(query);
-  });
+  // Memoize filtered tokens to prevent unnecessary recalculations
+  const filteredTokens = useMemo(() => {
+    return CURATED_TOKENS.filter(token => {
+      // First check category
+      const matchesCategory = selectedCategory === 'All' || token.category === selectedCategory;
+      if (!matchesCategory) return false;
+      
+      // Then check search query if needed
+      if (!searchQuery) return true;
+      const query = searchQuery.toLowerCase();
+      return token.name.toLowerCase().includes(query) || 
+             token.symbol.toLowerCase().includes(query) ||
+             token.address.toLowerCase().includes(query);
+    });
+  }, [selectedCategory, searchQuery]); // Only recalculate when these values change
 
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredTokens.length / TOKENS_PER_PAGE);
-  const startIndex = (currentPage - 1) * TOKENS_PER_PAGE;
-  const endIndex = startIndex + TOKENS_PER_PAGE;
-  const currentTokens = filteredTokens.slice(startIndex, endIndex);
+  // Memoize pagination calculations
+  const {
+    totalPages,
+    currentTokens,
+    startIndex,
+    endIndex
+  } = useMemo(() => {
+    const totalPages = Math.ceil(filteredTokens.length / TOKENS_PER_PAGE);
+    const startIndex = (currentPage - 1) * TOKENS_PER_PAGE;
+    const endIndex = startIndex + TOKENS_PER_PAGE;
+    const currentTokens = filteredTokens.slice(startIndex, endIndex);
+    
+    return {
+      totalPages,
+      currentTokens,
+      startIndex,
+      endIndex
+    };
+  }, [filteredTokens, currentPage]);
 
   const handleCopy = async (address: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -84,6 +102,17 @@ export function CuratedTokensGrid({ onTokenSelect }: CuratedTokensGridProps) {
     });
   };
 
+  // Reset to first page when changing filters
+  const handleCategoryChange = (category: typeof CATEGORIES[number]) => {
+    setSelectedCategory(category);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
+
   if (!filteredTokens.length) {
     return (
       <div className="space-y-4">
@@ -94,10 +123,7 @@ export function CuratedTokensGrid({ onTokenSelect }: CuratedTokensGridProps) {
               key={category}
               variant={selectedCategory === category ? "default" : "outline"}
               size="sm"
-              onClick={() => {
-                setSelectedCategory(category);
-                setCurrentPage(1); // Reset to first page on category change
-              }}
+              onClick={() => handleCategoryChange(category)}
             >
               {category}
             </Button>
@@ -111,10 +137,7 @@ export function CuratedTokensGrid({ onTokenSelect }: CuratedTokensGridProps) {
             type="text"
             placeholder="Search by name, symbol, or address..."
             value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1); // Reset to first page on search
-            }}
+            onChange={handleSearchChange}
             className="pl-9"
           />
         </div>
@@ -139,7 +162,7 @@ export function CuratedTokensGrid({ onTokenSelect }: CuratedTokensGridProps) {
             {selectedCategory !== 'All' && (
               <Button 
                 variant="outline" 
-                onClick={() => setSelectedCategory('All')}
+                onClick={() => handleCategoryChange('All')}
               >
                 Show All Categories
               </Button>
@@ -159,10 +182,7 @@ export function CuratedTokensGrid({ onTokenSelect }: CuratedTokensGridProps) {
             key={category}
             variant={selectedCategory === category ? "default" : "outline"}
             size="sm"
-            onClick={() => {
-              setSelectedCategory(category);
-              setCurrentPage(1); // Reset to first page on category change
-            }}
+            onClick={() => handleCategoryChange(category)}
           >
             {category}
           </Button>
@@ -176,10 +196,7 @@ export function CuratedTokensGrid({ onTokenSelect }: CuratedTokensGridProps) {
           type="text"
           placeholder="Search by name, symbol, or address..."
           value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            setCurrentPage(1); // Reset to first page on search
-          }}
+          onChange={handleSearchChange}
           className="pl-9"
         />
       </div>
