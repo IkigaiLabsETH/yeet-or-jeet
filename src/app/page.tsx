@@ -48,6 +48,7 @@ type Section = {
     symbol: string;
     price: string;
     marketCap: string;
+    volume: string;
   };
   walletInfo?: {
     address: string;
@@ -292,10 +293,29 @@ function ResponseScreen(props: {
                info?.dexScreenerData?.price_usd || 
                "0.00"),
             marketCapUSD: verdictSection?.tokenInfo?.marketCap || 
-              (info?.geckoTerminalData?.data?.attributes?.market_cap_usd || 
-               info?.dexScreenerData?.market_cap_usd?.toString() || 
-               "0"),
-            volumeUSD: verdictSection?.tokenInfo?.marketCap || 
+              (() => {
+                // Try to get market cap from GeckoTerminal
+                const geckoMarketCap = info?.geckoTerminalData?.data?.attributes?.market_cap_usd;
+                if (geckoMarketCap && geckoMarketCap !== "0") return geckoMarketCap;
+
+                // If not available, try to calculate it from total supply and price
+                const totalSupply = info?.geckoTerminalData?.data?.attributes?.total_supply;
+                const priceUSD = info?.geckoTerminalData?.data?.attributes?.price_usd;
+                if (totalSupply && priceUSD) {
+                  const calculatedMarketCap = (
+                    parseFloat(totalSupply) * parseFloat(priceUSD)
+                  ).toString();
+                  if (!isNaN(parseFloat(calculatedMarketCap))) return calculatedMarketCap;
+                }
+
+                // Try DexScreener as fallback
+                const dexScreenerMarketCap = info?.dexScreenerData?.market_cap_usd?.toString();
+                if (dexScreenerMarketCap) return dexScreenerMarketCap;
+
+                // Default to "0" if all else fails
+                return "0";
+              })(),
+            volumeUSD: verdictSection?.tokenInfo?.volume || 
               (info?.geckoTerminalData?.data?.attributes?.volume_usd?.h24 || 
                info?.dexScreenerData?.volume_24h?.toString() || 
                "0"),
