@@ -28,8 +28,20 @@ export function CuratedNFTsGrid({ onCollectionSelect }: CuratedNFTsGridProps) {
 
   const fetchCieloStats = async (collectionId: string) => {
     try {
+      // Collections endpoint - requires paid account
+      // const response = await fetch(
+      //   `https://api.cielo.finance/v1/collections/${encodeURIComponent(collectionId)}`,
+      //   {
+      //     headers: {
+      //       'accept': '*/*',
+      //       'x-api-key': process.env.NEXT_PUBLIC_CIELO_API_KEY || '',
+      //     },
+      //   }
+      // );
+
+      // Using feed endpoint which is available on free plan
       const response = await fetch(
-        `https://api.cielo.finance/v1/collections/${encodeURIComponent(collectionId)}`,
+        `https://feed-api.cielo.finance/api/v1/feed?limit=100`,
         {
           headers: {
             'accept': '*/*',
@@ -43,12 +55,16 @@ export function CuratedNFTsGrid({ onCollectionSelect }: CuratedNFTsGridProps) {
       }
 
       const data = await response.json();
-      console.log(`Cielo data for ${collectionId}:`, JSON.stringify(data, null, 2));
+      console.log(`Cielo feed data:`, JSON.stringify(data, null, 2));
       
-      return {
-        winRate: data.winRate,
-        pnl: data.pnl,
-      };
+      // TODO: Once we have paid account, uncomment this
+      // return {
+      //   winRate: data.winRate,
+      //   pnl: data.pnl,
+      // };
+
+      // For now, return null since we can't get collection-specific stats
+      return null;
     } catch (error) {
       console.warn(`Error fetching Cielo stats:`, error);
       return null;
