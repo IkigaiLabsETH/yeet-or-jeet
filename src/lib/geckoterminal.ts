@@ -416,12 +416,23 @@ function isStablecoin(symbol: string, address?: string): boolean {
   return false;
 }
 
-// Add this new function to fetch top tokens
+// Add cache interface and initialization
+interface TokenCache {
+  data: TopToken;
+  timestamp: number;
+}
+
+const tokenCache = new Map<string, TokenCache>();
+const CACHE_DURATION = 30 * 1000; // 30 seconds cache
+
+// Define priority addresses from PRIORITY_TOKENS
+const priorityAddresses: string[] = Array.from(PRIORITY_TOKENS);
+
 export async function getTopTokens(): Promise<TopToken[]> {
   try {
     console.log("Fetching real-time top tokens data for Berachain");
     
-    // First try to get pools data which we know works
+    // First try to get pools data which includes most recent prices
     console.log("Fetching pools data from Berachain");
     const poolsData = await fetchGeckoTerminal("/networks/berachain/pools?page=1&page_size=100");
     
@@ -433,246 +444,135 @@ export async function getTopTokens(): Promise<TopToken[]> {
     
     // Extract token information from pools
     const tokenMap = new Map<string, any>();
+    const now = Date.now();
     
     // Process each pool to extract token information
     for (const pool of poolsData.data) {
       if (!pool.attributes) continue;
       
-      // Process base token
-      if (pool.relationships?.base_token?.data) {
-        const baseTokenId = pool.relationships.base_token.data.id;
-        const baseTokenAddress = baseTokenId.split('_')[1].toLowerCase();
-        const baseTokenPrice = pool.attributes.base_token_price_usd;
-        const baseTokenSymbol = pool.attributes.base_token_symbol;
+      // Process base and quote tokens
+      const tokens = [
+        {
+          id: pool.relationships?.base_token?.data?.id,
+          price: pool.attributes.base_token_price_usd,
+          symbol: pool.attributes.base_token_symbol,
+          name: pool.attributes.base_token_name,
+          volume: pool.attributes.volume_usd?.h24 || 0,
+          priceChange: pool.attributes.price_change_percentage?.h24 || 0
+        },
+        {
+          id: pool.relationships?.quote_token?.data?.id,
+          price: pool.attributes.quote_token_price_usd,
+          symbol: pool.attributes.quote_token_symbol,
+          name: pool.attributes.quote_token_name,
+          volume: pool.attributes.volume_usd?.h24 || 0,
+          priceChange: -1 * (pool.attributes.price_change_percentage?.h24 || 0)
+        }
+      ];
+
+      for (const token of tokens) {
+        if (!token.id) continue;
+        
+        const tokenAddress = token.id.split('_')[1].toLowerCase();
+        
+        // Skip if we've already processed this token
+        if (tokenMap.has(tokenAddress)) continue;
         
         // Skip stablecoins and wrapped tokens
-        if (isStablecoin(baseTokenSymbol, baseTokenAddress) || isWrappedToken(baseTokenSymbol, baseTokenAddress)) {
-          console.log(`Skipping ${isStablecoin(baseTokenSymbol, baseTokenAddress) ? 'stablecoin' : 'wrapped token'}: ${baseTokenSymbol}`);
+        if (isStablecoin(token.symbol, tokenAddress) || isWrappedToken(token.symbol, tokenAddress)) {
           continue;
         }
         
-        // Get volume for base token
-        const baseTokenVolume = pool.attributes.volume_usd?.h24 || 0;
-        
-        // Skip tokens with volume below $100K
-        if (baseTokenVolume < 100000) {
-          console.log(`Skipping low volume token: ${baseTokenSymbol} (volume: $${baseTokenVolume.toLocaleString()})`);
+        // Check cache first
+        const cached = tokenCache.get(tokenAddress);
+        if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+          tokenMap.set(tokenAddress, cached.data);
           continue;
         }
         
-        // Skip specific tokens like MOOLA
-        if (baseTokenSymbol === 'MOOLA' || baseTokenSymbol === 'MO' || baseTokenSymbol === 'HONEY') {
-          console.log(`Skipping specific token: ${baseTokenSymbol}`);
-          continue;
-        }
-        
-        // Update token info if we have a price
-        if (baseTokenPrice && !tokenMap.has(baseTokenAddress)) {
-          tokenMap.set(baseTokenAddress, {
-            address: baseTokenAddress,
-            price_usd: baseTokenPrice,
-            volume_24h: baseTokenVolume,
-            name: pool.attributes.base_token_name || "",
-            symbol: baseTokenSymbol || "",
-            price_change_24h: pool.attributes.price_change_percentage?.h24 || 0,
-            market_cap_usd: 0
-          });
-        }
-      }
-      
-      // Process quote token
-      if (pool.relationships?.quote_token?.data) {
-        const quoteTokenId = pool.relationships.quote_token.data.id;
-        const quoteTokenAddress = quoteTokenId.split('_')[1].toLowerCase();
-        const quoteTokenPrice = pool.attributes.quote_token_price_usd;
-        const quoteTokenSymbol = pool.attributes.quote_token_symbol;
-        
-        // Skip stablecoins and wrapped tokens
-        if (isStablecoin(quoteTokenSymbol, quoteTokenAddress) || isWrappedToken(quoteTokenSymbol, quoteTokenAddress)) {
-          console.log(`Skipping ${isStablecoin(quoteTokenSymbol, quoteTokenAddress) ? 'stablecoin' : 'wrapped token'}: ${quoteTokenSymbol}`);
-          continue;
-        }
-        
-        // Get volume for quote token
-        const quoteTokenVolume = pool.attributes.volume_usd?.h24 || 0;
-        
-        // Skip tokens with volume below $100K
-        if (quoteTokenVolume < 100000) {
-          console.log(`Skipping low volume token: ${quoteTokenSymbol} (volume: $${quoteTokenVolume.toLocaleString()})`);
-          continue;
-        }
-        
-        // Skip specific tokens like MOOLA
-        if (quoteTokenSymbol === 'MOOLA' || quoteTokenSymbol === 'MO' || quoteTokenSymbol === 'HONEY') {
-          console.log(`Skipping specific token: ${quoteTokenSymbol}`);
-          continue;
-        }
-        
-        // Update token info if we have a price
-        if (quoteTokenPrice && !tokenMap.has(quoteTokenAddress)) {
-          tokenMap.set(quoteTokenAddress, {
-            address: quoteTokenAddress,
-            price_usd: quoteTokenPrice,
-            volume_24h: quoteTokenVolume,
-            name: pool.attributes.quote_token_name || "",
-            symbol: quoteTokenSymbol || "",
-            price_change_24h: -1 * (pool.attributes.price_change_percentage?.h24 || 0), // Invert for quote token
-            market_cap_usd: 0
-          });
-        }
+        // Create token data
+        const tokenInfo: TopToken = {
+          address: tokenAddress,
+          name: token.name || "Unknown",
+          symbol: token.symbol || "???",
+          price_usd: token.price || "0",
+          volume_24h: token.volume || 0,
+          price_change_24h: token.priceChange || 0,
+          market_cap_usd: 0 // Will be enriched later
+        };
+
+        // Update cache and token map
+        tokenCache.set(tokenAddress, { data: tokenInfo, timestamp: now });
+        tokenMap.set(tokenAddress, tokenInfo);
       }
     }
-    
-    console.log(`Extracted ${tokenMap.size} unique non-stablecoin tokens with volume >= $100K from pools data`);
-    
-    // Now try to get detailed information for each token
-    const tokens: TopToken[] = [];
-    
-    // Convert map to array and sort by volume
-    const tokenArray = Array.from(tokenMap.values());
-    tokenArray.sort((a, b) => b.volume_24h - a.volume_24h);
-    
-    // Take top 20 tokens by volume to enrich with additional data
-    const topTokensByVolume = tokenArray.slice(0, 20);
-    
-    // Try to get detailed information for each token
-    for (const tokenData of topTokensByVolume) {
-      const address = tokenData.address;
-      
-      // Skip tokens with volume below $100K
-      if (tokenData.volume_24h < 100000) {
-        console.log(`Skipping token with low volume: ${tokenData.symbol} (${address}), volume: $${tokenData.volume_24h.toLocaleString()}`);
-        continue;
-      }
-      
-      // Skip stablecoins
-      if (isStablecoin(tokenData.symbol, address)) {
-        console.log(`Skipping stablecoin: ${tokenData.symbol} (${address})`);
-        continue;
-      }
-      
+
+    // Convert map to array
+    let tokens = Array.from(tokenMap.values());
+
+    // Enrich priority tokens with additional data in parallel
+    const priorityTokenPromises = priorityAddresses.map(async (address) => {
       try {
-        console.log(`Fetching data for token ${address}`);
         const tokenResponse = await fetchGeckoTerminal(`/networks/berachain/tokens/${address}`);
+        if (!tokenResponse?.data?.attributes) return null;
+
+        const attrs = tokenResponse.data.attributes;
+        const existingToken = tokens.find(t => t.address.toLowerCase() === address.toLowerCase());
         
-        if (tokenResponse?.data?.attributes) {
-          const attrs = tokenResponse.data.attributes;
+        if (existingToken) {
+          // Update with more accurate data
+          existingToken.market_cap_usd = attrs.market_cap_usd || attrs.fdv_usd || 0;
           
-          // Create base token data
-          const tokenInfo: TopToken = {
-            address: address,
-            name: attrs.name || tokenData.name || "Unknown",
-            symbol: attrs.symbol || tokenData.symbol || "???",
-            price_usd: attrs.price_usd || tokenData.price_usd || "0",
-            volume_24h: attrs.volume_usd?.h24 || tokenData.volume_24h || 0,
-            price_change_24h: tokenData.price_change_24h || 0,
-            market_cap_usd: attrs.market_cap_usd || attrs.fdv_usd || 0
-          };
-          
-          // Try to get additional info from the /info endpoint
+          // Try to get additional metadata
           try {
-            console.log(`Fetching additional info for token ${address}`);
             const infoData = await fetchGeckoTerminal(`/networks/berachain/tokens/${address}/info`);
-            
             if (infoData?.data?.attributes) {
               const infoAttrs = infoData.data.attributes;
-              
-              // Enrich token data with additional metadata
-              tokenInfo.image_url = infoAttrs.image_url;
-              tokenInfo.description = infoAttrs.description;
-              tokenInfo.websites = infoAttrs.websites;
-              tokenInfo.discord_url = infoAttrs.discord_url;
-              tokenInfo.telegram_handle = infoAttrs.telegram_handle;
-              tokenInfo.twitter_handle = infoAttrs.twitter_handle;
-              tokenInfo.categories = infoAttrs.categories;
-              tokenInfo.gt_score = infoAttrs.gt_score;
-              
-              console.log(`Successfully enriched token ${attrs.symbol || "Unknown"} with additional metadata`);
+              Object.assign(existingToken, {
+                image_url: infoAttrs.image_url,
+                description: infoAttrs.description,
+                websites: infoAttrs.websites,
+                discord_url: infoAttrs.discord_url,
+                telegram_handle: infoAttrs.telegram_handle,
+                twitter_handle: infoAttrs.twitter_handle,
+                categories: infoAttrs.categories,
+                gt_score: infoAttrs.gt_score
+              });
             }
           } catch (infoError) {
-            console.warn(`Failed to fetch additional info for token ${address}:`, infoError);
-            // Continue with the basic token data we have
+            console.warn(`Failed to fetch additional info for priority token ${address}:`, infoError);
           }
-          
-          tokens.push(tokenInfo);
-          console.log(`Successfully added token ${attrs.symbol || "Unknown"}`);
-        } else {
-          // Use the data we already have from pools
-          tokens.push({
-            address: address,
-            name: tokenData.name || "Unknown",
-            symbol: tokenData.symbol || "???",
-            price_usd: tokenData.price_usd || "0",
-            volume_24h: tokenData.volume_24h || 0,
-            price_change_24h: tokenData.price_change_24h || 0,
-            market_cap_usd: tokenData.market_cap_usd || 0
-          });
-          
-          console.log(`Added token ${tokenData.symbol || "Unknown"} with pool data`);
         }
       } catch (error) {
-        console.warn(`Failed to fetch data for token ${address}:`, error);
-        
-        // Use the data we have from pools
-        tokens.push({
-          address: address,
-          name: tokenData.name || "Unknown",
-          symbol: tokenData.symbol || "???",
-          price_usd: tokenData.price_usd || "0",
-          volume_24h: tokenData.volume_24h || 0,
-          price_change_24h: tokenData.price_change_24h || 0,
-          market_cap_usd: tokenData.market_cap_usd || 0
-        });
-        
-        console.log(`Added token ${tokenData.symbol || "Unknown"} with fallback pool data`);
+        console.warn(`Failed to enrich priority token ${address}:`, error);
       }
-    }
-    
-    // Update the filtering logic to prioritize specific tokens
-    const filteredTokens = tokens.filter(token => {
-      // Always include priority tokens regardless of volume
-      if (PRIORITY_TOKENS.has(token.address.toLowerCase())) {
-        return true;
-      }
-
-      const hasEnoughVolume = token.volume_24h >= 100000;
-      const isNotStablecoin = !isStablecoin(token.symbol, token.address);
-      const isNotWrapped = !isWrappedToken(token.symbol, token.address);
-      
-      if (!hasEnoughVolume) {
-        console.log(`Filtering out token with low volume: ${token.symbol} (${token.address}), volume: $${token.volume_24h.toLocaleString()}`);
-      }
-      
-      if (!isNotStablecoin) {
-        console.log(`Filtering out stablecoin: ${token.symbol} (${token.address})`);
-      }
-
-      if (!isNotWrapped) {
-        console.log(`Filtering out wrapped token: ${token.symbol} (${token.address})`);
-      }
-      
-      return hasEnoughVolume && isNotStablecoin && isNotWrapped;
     });
 
-    // Sort tokens to prioritize the specific list
-    filteredTokens.sort((a, b) => {
+    // Wait for all priority token enrichment to complete
+    await Promise.all(priorityTokenPromises);
+
+    // Filter and sort tokens
+    tokens = tokens.filter(token => {
+      if (PRIORITY_TOKENS.has(token.address.toLowerCase())) return true;
+      return token.volume_24h >= 100000 && 
+             !isStablecoin(token.symbol, token.address) && 
+             !isWrappedToken(token.symbol, token.address);
+    }).sort((a, b) => {
       const aIsPriority = PRIORITY_TOKENS.has(a.address.toLowerCase());
       const bIsPriority = PRIORITY_TOKENS.has(b.address.toLowerCase());
-      
       if (aIsPriority && !bIsPriority) return -1;
       if (!aIsPriority && bIsPriority) return 1;
-      
-      // If both are priority or both are not, sort by volume
       return b.volume_24h - a.volume_24h;
     });
 
-    // Take top tokens, ensuring we include priority tokens
-    const result = filteredTokens.slice(0, 12);
-    
+    // Take top 12 tokens
+    const result = tokens.slice(0, 12);
     console.log(`Returning ${result.length} tokens (including priority tokens)`);
     return result;
+
   } catch (error) {
     console.error("Error fetching real-time token data:", error);
+    // Try to get data for priority tokens as fallback
     return getHardcodedTokens();
   }
 }
