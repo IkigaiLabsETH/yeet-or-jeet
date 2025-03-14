@@ -33,9 +33,9 @@ export function CuratedNFTsGrid({ onCollectionSelect }: CuratedNFTsGridProps) {
           const collectionId = getCollectionIdentifier(nft);
           
           try {
-            // Using the collections/v7 endpoint which provides more complete data
+            // Using the collections/v7 endpoint
             const response = await fetch(
-              `https://api.reservoir.tools/collections/v7?slug=${encodeURIComponent(collectionId)}`,
+              `https://api.reservoir.tools/collections/v7/${encodeURIComponent(collectionId)}`,
               {
                 headers: {
                   'accept': '*/*',
@@ -49,10 +49,10 @@ export function CuratedNFTsGrid({ onCollectionSelect }: CuratedNFTsGridProps) {
             }
 
             const data = await response.json();
-            console.log(`Data for ${nft.name}:`, data);
+            console.log(`Data for ${nft.name}:`, JSON.stringify(data, null, 2));
 
-            // Extract the first collection from the response
-            const collection = data.collections?.[0];
+            // Extract collection data from v7 response
+            const collection = data.collection;
             if (!collection) {
               throw new Error(`No collection data found for ${nft.name}`);
             }
@@ -62,7 +62,7 @@ export function CuratedNFTsGrid({ onCollectionSelect }: CuratedNFTsGridProps) {
               stats: {
                 floorPrice: collection.floorAsk?.price?.amount?.native || 0,
                 totalVolume: collection.volume?.allTime || 0,
-                imageUrl: collection.image || collection.metadata?.imageUrl || null
+                imageUrl: collection.image || collection.imageUrl || null
               }
             };
           } catch (error) {

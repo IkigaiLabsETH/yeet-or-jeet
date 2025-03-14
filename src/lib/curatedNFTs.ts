@@ -21,21 +21,21 @@ export const CURATED_NFTS: CuratedNFT[] = [
     name: "Guy Bourdin",
     symbol: "GUY",
     category: "Photography",
-    collectionSlug: "guy-bourdin-photography"
+    collectionSlug: "guy-bourdin"
   },
   {
     address: "0x059edd72cd353df5106d2b9cc5ab83a52287ac3a",
     name: "Chromie Squiggle",
     symbol: "SQUIGGLE",
     category: "Gen Art",
-    collectionSlug: "chromie-squiggle"
+    collectionSlug: "chromie-squiggle-by-snowfro"
   },
   {
     address: "0xa7d8d9ef8d8ce8992df33d8b8cf4aebabd5bd270",
     name: "Ringers",
     symbol: "RINGERS",
     category: "Gen Art",
-    collectionSlug: "art-blocks-ringers",
+    collectionSlug: "ringers-by-dmitri-cherniak",
     tokenRange: {
       start: 53000000,
       end: 53999999
@@ -54,21 +54,21 @@ export const CURATED_NFTS: CuratedNFT[] = [
     name: "alignDRAW",
     symbol: "DRAW",
     category: "AI",
-    collectionSlug: "aligndraw-by-alignments"
+    collectionSlug: "aligndraw"
   },
   {
     address: "0x7Bd29408f11D2bFC23c34f18275bBf23bB716Bc7",
     name: "Mirage Gallery",
     symbol: "MIRAGE",
     category: "AI",
-    collectionSlug: "mirage-gallery-founder-pass"
+    collectionSlug: "mirage-gallery-genesis"
   },
   {
     address: "0x4d928ab507bf633dd8e68024a1fb4c99316bbdf3",
     name: "Love Tennis",
     symbol: "LOVE",
     category: "Gen Art",
-    collectionSlug: "love-tennis-by-john-orion-young"
+    collectionSlug: "love-tennis"
   },
   {
     address: "0x845dd2a7ee2a92a0518ab2135365ed63fdba0c88",
@@ -82,7 +82,7 @@ export const CURATED_NFTS: CuratedNFT[] = [
     name: "Drip Drop",
     symbol: "DRIP",
     category: "Photography",
-    collectionSlug: "drip-drop-by-isaac-wright"
+    collectionSlug: "drip-drop"
   },
   {
     address: "0x509a050f573be0d5e01a73c3726e17161729558b",
@@ -96,7 +96,7 @@ export const CURATED_NFTS: CuratedNFT[] = [
     name: "Life In West America",
     symbol: "LIWA",
     category: "Gen Art",
-    collectionSlug: "life-in-west-america-by-emily-xie",
+    collectionSlug: "life-in-west-america",
     tokenRange: {
       start: 15000000,
       end: 15999999
@@ -107,14 +107,14 @@ export const CURATED_NFTS: CuratedNFT[] = [
     name: "Machine Hallucinations — NYC",
     symbol: "MHNYC",
     category: "AI",
-    collectionSlug: "machine-hallucinations-nyc-by-refik-anadol"
+    collectionSlug: "machine-hallucinations-nyc"
   },
   {
     address: "0x75d639e5e52b4ea5426f2fb46959b9c3099b729a",
     name: "Metascapes",
     symbol: "META",
     category: "Gen Art",
-    collectionSlug: "metascapes-by-emily-xie"
+    collectionSlug: "metascapes"
   },
   {
     address: "0xaa4bc994775a0d19ff1c01310191df6521af12dd",
@@ -142,7 +142,7 @@ export const CURATED_NFTS: CuratedNFT[] = [
     name: "Singularity",
     symbol: "SING",
     category: "AI",
-    collectionSlug: "singularity-by-refik-anadol"
+    collectionSlug: "singularity"
   },
   {
     address: "0x7a15b36cb834aea88553de69077d3777460d73ac",
