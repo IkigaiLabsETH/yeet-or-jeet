@@ -39,13 +39,6 @@ export const CURATED_TOKENS: CuratedToken[] = [
     liquidity_usd: 5000000
   },
   {
-    address: "0xB776608A6881FfD2152bDFE65BD04Cbe66697Dcf",
-    name: "Bread",
-    symbol: "BREAD",
-    description: "Bread is a community-driven token focused on DeFi innovation on Berachain.",
-    category: "DeFi",
-  },
-  {
     address: "0x047b41A14F0BeF681b94f570479AE7208E577a0C",
     name: "Him",
     symbol: "HIM",

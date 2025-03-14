@@ -31,15 +31,6 @@ function getHardcodedTokenData(tokenAddress: string): DexScreenerToken | undefin
       price_change_24h: 5.2,
       market_cap_usd: 4200000
     },
-    "0xB776608A6881FfD2152bDFE65BD04Cbe66697Dcf": {
-      address: "0xB776608A6881FfD2152bDFE65BD04Cbe66697Dcf",
-      name: "Bread",
-      symbol: "BREAD",
-      price_usd: "0.18",
-      volume_24h: 980000,
-      price_change_24h: 3.7,
-      market_cap_usd: 1800000
-    },
     "0x047b41A14F0BeF681b94f570479AE7208E577a0C": {
       address: "0x047b41A14F0BeF681b94f570479AE7208E577a0C",
       name: "Him",
