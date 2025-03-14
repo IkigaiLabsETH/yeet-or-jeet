@@ -1,7 +1,17 @@
 import { NextResponse } from 'next/server';
 
+interface ReservoirStatsResponse {
+  stats: {
+    floorAsk: number;
+    topBid: number;
+    volume24h: number;
+    volumeAll: number;
+    // Add other fields as needed based on Reservoir API response
+  };
+}
+
 // Simple in-memory cache using Map
-const cache = new Map<string, { data: any; timestamp: number }>();
+const cache = new Map<string, { data: ReservoirStatsResponse; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 // Simple rate limiting
