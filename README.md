@@ -14,6 +14,216 @@ b/era addresses critical gaps in the DeFi and NFT analytics landscape:
 
 4. **Poor Risk Assessment**: Current platforms lack sophisticated risk metrics. b/era's RiskAssessmentService provides institutional-grade risk analysis.
 
+## Architecture Deep Dive
+
+### 1. Core Services Architecture
+
+```mermaid
+graph TD
+    A[External Data Sources] -->|Raw Data| B[DataAggregationService]
+    B -->|Social Data| C[SocialMetricsService]
+    B -->|Market Data| D[TechnicalAnalysisService]
+    B -->|Security Data| E[RiskAssessmentService]
+    B -->|Chain Data| F[CrossChainAnalysisService]
+    C & D & E & F -->|Processed Data| G[NEBULA Enhanced Context]
+    G -->|AI-Powered Analysis| H[Trading Signals]
+    H -->|Real-time Updates| I[UI Components]
+```
+
+### 2. Service Integration with NEBULA
+
+#### DataAggregationService
+- **Enhanced Context Processing**
+```typescript
+interface NebulaEnhancedContext {
+  marketData: {
+    price: number;
+    volume24h: number;
+    liquidityDepth: number;
+    priceImpact: number;
+  };
+  socialSignals: {
+    sentiment: number;
+    momentum: number;
+    communityGrowth: number;
+  };
+  riskMetrics: {
+    securityScore: number;
+    liquidityRisk: number;
+    whaleConcentration: number;
+  };
+  crossChainData: {
+    bridgeActivity: number;
+    protocolAdoption: number;
+    marketShare: number;
+  };
+}
+```
+
+#### Real-time Data Flow
+```mermaid
+graph LR
+    A[Market Events] -->|30s Updates| B[Cache Layer]
+    C[Social Signals] -->|Real-time| B
+    D[On-chain Events] -->|Block-by-block| B
+    B -->|Enhanced Context| E[NEBULA]
+    E -->|AI Analysis| F[Trading Decisions]
+```
+
+### 3. Advanced Features
+
+#### A. Smart Money Analysis
+- **Whale Tracking System**
+```typescript
+interface WhaleActivity {
+  address: string;
+  holdings: number;
+  recentTrades: {
+    timestamp: number;
+    action: 'buy' | 'sell';
+    amount: number;
+    priceImpact: number;
+  }[];
+  crossChainActivity: {
+    chain: string;
+    volume24h: number;
+  }[];
+}
+```
+
+#### B. Risk Assessment Engine
+- **Multi-factor Risk Scoring**
+```typescript
+interface RiskScore {
+  overall: number;  // 0-100
+  factors: {
+    smartContractRisk: number;
+    liquidityRisk: number;
+    concentrationRisk: number;
+    marketManipulationRisk: number;
+  };
+  recommendations: {
+    maxPosition: number;
+    entryStrategy: string;
+    exitStrategy: string;
+  };
+}
+```
+
+### 4. NEBULA Integration Benefits
+
+#### A. Enhanced Decision Making
+- Combines NEBULA's blockchain intelligence with:
+  - Real-time market data
+  - Social sentiment analysis
+  - Whale activity tracking
+  - Cross-chain metrics
+
+#### B. Predictive Analytics
+```typescript
+interface PredictiveModel {
+  shortTerm: {
+    priceTarget: number;
+    confidence: number;
+    timeframe: '1h' | '4h' | '24h';
+  };
+  longTerm: {
+    trendPrediction: 'bullish' | 'bearish' | 'neutral';
+    supportLevels: number[];
+    resistanceLevels: number[];
+  };
+  signals: {
+    technical: string[];
+    fundamental: string[];
+    sentiment: string[];
+  };
+}
+```
+
+### 5. Real-time Processing Pipeline
+
+```mermaid
+graph TD
+    A[Data Sources] -->|Ingestion| B[Processing Layer]
+    B -->|Validation| C[Enrichment Layer]
+    C -->|Analysis| D[ML Pipeline]
+    D -->|Predictions| E[NEBULA Context]
+    E -->|Trading Signals| F[Execution Layer]
+```
+
+#### Processing Stages:
+1. **Data Ingestion**
+   - Multi-source data collection
+   - Rate limiting and queueing
+   - Data validation
+
+2. **Enrichment**
+   - Cross-validation
+   - Pattern detection
+   - Anomaly identification
+
+3. **Analysis**
+   - ML model processing
+   - Signal generation
+   - Risk assessment
+
+4. **Execution**
+   - Strategy formulation
+   - Order optimization
+   - Risk management
+
+### 6. API Integration Points
+
+#### A. Market Data Endpoints
+```typescript
+// Price impact analysis
+GET /api/v1/analysis/price-impact
+{
+  tokenAddress: string;
+  amount: string;
+  side: 'buy' | 'sell';
+  timeWindow?: number;
+}
+
+// Smart money tracking
+GET /api/v1/analysis/smart-money
+{
+  tokenAddress: string;
+  timeWindow: number;
+  minimumHolding: string;
+}
+
+// Risk assessment
+GET /api/v1/analysis/risk-score
+{
+  tokenAddress: string;
+  includeFactors: string[];
+}
+```
+
+#### B. NEBULA Enhanced Endpoints
+```typescript
+// Enhanced context
+POST /api/v1/nebula/context
+{
+  message: string;
+  enrichWith: {
+    marketData: boolean;
+    socialSignals: boolean;
+    whaleActivity: boolean;
+    technicalAnalysis: boolean;
+  };
+}
+
+// Predictive analytics
+POST /api/v1/nebula/predict
+{
+  tokenAddress: string;
+  timeframe: '1h' | '24h' | '7d';
+  factors: string[];
+}
+```
+
 ## Architecture
 
 ### Core Services
@@ -419,7 +629,7 @@ pnpm install
 # .env.local
 
 # Core API Keys
-NEXT_PUBLIC_OOGABOOGA_API_KEY=your_oogabooga_api_key_here
+NEXT_PUBLIC_OOGABOOGA_API_KEY=your_oogabooga_api_key
 NEXT_PUBLIC_RESERVOIR_API_KEY=your_reservoir_api_key_here
 CIELO_API_KEY=your_cielo_api_key_here
 THIRDWEB_SECRET_KEY=your_nebula_api_key_here
@@ -513,3 +723,206 @@ pnpm dev
 ## Disclaimer
 
 This application is a conceptual prototype and not a fully operational product. The application is for educational purposes only and should not be considered financial advice.
+
+### 7. Implementation Details
+
+#### A. NEBULA Integration Setup
+```typescript
+// src/lib/nebula/config.ts
+interface NebulaConfig {
+  apiKey: string;
+  baseUrl: string;
+  options: {
+    maxRetries: number;
+    timeout: number;
+    rateLimitRPS: number;
+  };
+  enrichment: {
+    enableMarketData: boolean;
+    enableSocialSignals: boolean;
+    enableWhaleTracking: boolean;
+    enableTechnicalAnalysis: boolean;
+  };
+  ml: {
+    modelEndpoint: string;
+    batchSize: number;
+    updateInterval: number;
+  };
+}
+```
+
+#### B. Service Integration
+```typescript
+// src/lib/nebula/integration.ts
+class NebulaIntegration {
+  constructor(
+    private config: NebulaConfig,
+    private dataAggregator: DataAggregationService,
+    private riskAssessment: RiskAssessmentService
+  ) {}
+
+  async enhanceContext(message: string): Promise<NebulaEnhancedContext> {
+    // Fetch and combine data from all services
+    const [marketData, socialSignals, riskMetrics, crossChainData] = 
+      await Promise.all([
+        this.dataAggregator.getMarketData(),
+        this.dataAggregator.getSocialMetrics(),
+        this.riskAssessment.evaluate(),
+        this.dataAggregator.getCrossChainMetrics()
+      ]);
+
+    return {
+      marketData,
+      socialSignals,
+      riskMetrics,
+      crossChainData
+    };
+  }
+
+  async generateTradingSignals(
+    context: NebulaEnhancedContext
+  ): Promise<TradingSignals> {
+    // Process enhanced context through NEBULA
+    const response = await this.queryNebula({
+      context,
+      task: 'generate_trading_signals'
+    });
+
+    return this.processTradingSignals(response);
+  }
+}
+```
+
+#### C. ML Pipeline Integration
+```typescript
+// src/lib/ml/pipeline.ts
+interface MLPipeline {
+  modelConfig: {
+    architecture: string;
+    inputFeatures: string[];
+    outputLabels: string[];
+  };
+  training: {
+    batchSize: number;
+    epochs: number;
+    validationSplit: number;
+  };
+  inference: {
+    threshold: number;
+    confidenceRequired: number;
+  };
+}
+```
+
+### 8. Configuration Management
+
+#### A. Environment Variables
+```bash
+# .env.local
+
+# NEBULA Configuration
+NEBULA_API_KEY=your_nebula_api_key
+NEBULA_MODEL_ENDPOINT=your_model_endpoint
+NEBULA_MAX_RETRIES=3
+NEBULA_TIMEOUT_MS=5000
+NEBULA_RATE_LIMIT_RPS=10
+
+# ML Pipeline Configuration
+ML_MODEL_ARCHITECTURE=transformer
+ML_BATCH_SIZE=32
+ML_UPDATE_INTERVAL=300
+ML_CONFIDENCE_THRESHOLD=0.85
+
+# Service Integration
+ENABLE_MARKET_DATA=true
+ENABLE_SOCIAL_SIGNALS=true
+ENABLE_WHALE_TRACKING=true
+ENABLE_TECHNICAL_ANALYSIS=true
+```
+
+#### B. Service Configuration
+```typescript
+// src/config/services.ts
+interface ServiceConfig {
+  nebula: NebulaConfig;
+  dataAggregation: {
+    cacheTimeout: number;
+    updateInterval: number;
+    maxConcurrentRequests: number;
+  };
+  riskAssessment: {
+    riskThresholds: {
+      low: number;
+      medium: number;
+      high: number;
+    };
+    updateFrequency: number;
+  };
+  mlPipeline: MLPipeline;
+}
+```
+
+### 9. Development Workflow
+
+#### A. Local Development
+1. **Setup Environment**
+```bash
+# Install dependencies
+pnpm install
+
+# Configure environment variables
+cp .env.example .env.local
+
+# Start development services
+pnpm dev
+```
+
+2. **Testing NEBULA Integration**
+```bash
+# Run integration tests
+pnpm test:nebula
+
+# Test ML pipeline
+pnpm test:ml
+
+# Run end-to-end tests
+pnpm test:e2e
+```
+
+#### B. Deployment Pipeline
+```mermaid
+graph TD
+    A[Development] -->|PR| B[Testing]
+    B -->|Pass| C[Staging]
+    C -->|Validation| D[Production]
+    D -->|Monitoring| E[Analytics]
+```
+
+### 10. Monitoring and Analytics
+
+#### A. Service Health Metrics
+```typescript
+interface ServiceHealth {
+  nebula: {
+    responseTime: number;
+    successRate: number;
+    errorRate: number;
+  };
+  mlPipeline: {
+    accuracy: number;
+    latency: number;
+    throughput: number;
+  };
+  dataAggregation: {
+    updateFrequency: number;
+    cacheHitRate: number;
+    errorRate: number;
+  };
+}
+```
+
+#### B. Performance Monitoring
+- Real-time metrics dashboard
+- Error tracking and alerting
+- Performance optimization suggestions
+- Resource utilization monitoring
