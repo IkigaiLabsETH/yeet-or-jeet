@@ -1,0 +1,99 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+        
+    - name: Get pnpm store directory
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+    - uses: actions/cache@v3
+      name: Setup pnpm cache
+      with:
+        path: ${{ env.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Run linting
+      run: pnpm lint
+      
+    - name: Run tests
+      run: pnpm test
+      env:
+        NEXT_PUBLIC_OOGABOOGA_API_KEY: ${{ secrets.NEXT_PUBLIC_OOGABOOGA_API_KEY }}
+        NEXT_PUBLIC_RESERVOIR_API_KEY: ${{ secrets.NEXT_PUBLIC_RESERVOIR_API_KEY }}
+        CIELO_API_KEY: ${{ secrets.CIELO_API_KEY }}
+        THIRDWEB_SECRET_KEY: ${{ secrets.THIRDWEB_SECRET_KEY }}
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+        
+    - name: Install dependencies
+      run: pnpm install
+      
+    - name: Build
+      run: pnpm build
+      env:
+        NEXT_PUBLIC_OOGABOOGA_API_KEY: ${{ secrets.NEXT_PUBLIC_OOGABOOGA_API_KEY }}
+        NEXT_PUBLIC_RESERVOIR_API_KEY: ${{ secrets.NEXT_PUBLIC_RESERVOIR_API_KEY }}
+        CIELO_API_KEY: ${{ secrets.CIELO_API_KEY }}
+        THIRDWEB_SECRET_KEY: ${{ secrets.THIRDWEB_SECRET_KEY }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Deploy to production
+      run: |
+        echo "Add your deployment steps here"
+      env:
+        NEXT_PUBLIC_OOGABOOGA_API_KEY: ${{ secrets.NEXT_PUBLIC_OOGABOOGA_API_KEY }}
+        NEXT_PUBLIC_RESERVOIR_API_KEY: ${{ secrets.NEXT_PUBLIC_RESERVOIR_API_KEY }}
+        CIELO_API_KEY: ${{ secrets.CIELO_API_KEY }}
+        THIRDWEB_SECRET_KEY: ${{ secrets.THIRDWEB_SECRET_KEY }} 
