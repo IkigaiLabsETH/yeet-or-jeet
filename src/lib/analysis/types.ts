@@ -60,7 +60,7 @@ export interface VolumeAnalysis {
   volumeZones: Array<{
     price: number;
     volume: number;
-    significance: number;
+    type: 'accumulation' | 'distribution';
   }>;
 }
 
@@ -72,20 +72,18 @@ export interface LiquidityData {
 }
 
 export interface PatternData {
-  pattern: string;
+  type: string;
   confidence: number;
-  priceTargets: {
-    entry: number;
-    target: number;
-    stopLoss: number;
-  };
-  timeframe: string;
+  startPrice: number;
+  endPrice: number;
+  duration: number;
+  significance: number;
 }
 
 export interface PredictionMetrics {
   predictedPrice: number;
   confidence: number;
-  timeframe: string;
+  timeframe: '1h' | '4h' | '24h' | '7d';
   supportingFactors: string[];
 }
 
@@ -107,7 +105,7 @@ export interface VolatilityMetrics {
 }
 
 export interface TrendAnalysis {
-  direction: 'up' | 'down' | 'sideways';
+  direction: 'bullish' | 'bearish' | 'sideways';
   strength: number;
   support: number[];
   resistance: number[];
@@ -116,16 +114,17 @@ export interface TrendAnalysis {
 // Risk Assessment Types
 export interface SecurityIssue {
   severity: 'low' | 'medium' | 'high' | 'critical';
+  type: string;
   description: string;
-  location: string;
-  recommendation: string;
+  location?: string;
+  recommendation?: string;
 }
 
 export interface AuditInfo {
-  lastAudit: Date;
-  auditor: string;
+  lastAudit?: Date;
+  auditor?: string;
   score: number;
-  findings: SecurityIssue[];
+  issues: SecurityIssue[];
 }
 
 export interface LiquidityMetrics {
@@ -136,24 +135,25 @@ export interface LiquidityMetrics {
 }
 
 export interface LockInfo {
-  isLocked: boolean;
-  lockDuration: number;
-  lockExpiry: Date;
-  lockedAmount: number;
+  amount: number;
+  duration: number;
+  unlockDate: Date;
+  type: 'team' | 'treasury' | 'ecosystem';
 }
 
 export interface WalletInfo {
   address: string;
   balance: number;
   percentage: number;
-  lastActivity: Date;
+  type: 'whale' | 'team' | 'contract' | 'unknown';
 }
 
 export interface WhaleMovement {
   timestamp: Date;
-  type: 'buy' | 'sell' | 'transfer';
+  address: string;
+  type: 'buy' | 'sell';
   amount: number;
-  price: number;
+  priceImpact: number;
 }
 
 export interface MarketImpact {
@@ -202,43 +202,127 @@ export interface AdoptionCurve {
   confidence: number;
 }
 
-// Aggregated Data Types
-export interface AggregatedData {
-  nebulaData: any; // Thirdweb Nebula data
-  socialMetrics: {
-    twitter: SentimentData & EngagementMetrics;
-    discord: MessageStats & GrowthMetrics;
-    telegram: GroupStats & ActivityData;
-  };
-  technicalAnalysis: {
-    volume: VolumeAnalysis;
-    liquidity: LiquidityData;
-    patterns: PatternData[];
-    predictions: PredictionMetrics;
-  };
-  riskMetrics: {
-    security: {
-      score: number;
-      issues: SecurityIssue[];
-      audit: AuditInfo;
-    };
-    liquidity: LiquidityMetrics & LockInfo;
-    whales: {
-      holders: WalletInfo[];
-      movements: WhaleMovement[];
-      impact: MarketImpact;
-    };
-  };
-  crossChain: {
-    bridges: {
+// Social Metrics Types
+export interface SentimentData {
+  score: number;
+  magnitude: number;
+  keywords: string[];
+  timestamp: Date;
+}
+
+export interface EngagementMetrics {
+  likes: number;
+  retweets: number;
+  replies: number;
+  impressions: number;
+  engagementRate: number;
+}
+
+export interface MessageStats {
+  total: number;
+  activeChannels: number;
+  peakHours: number[];
+  topContributors: string[];
+}
+
+export interface GrowthMetrics {
+  newMembers: number;
+  churnRate: number;
+  retentionRate: number;
+  growthRate: number;
+}
+
+export interface GroupStats {
+  memberCount: number;
+  activeMembers: number;
+  messageFrequency: number;
+  topicDistribution: Record<string, number>;
+}
+
+export interface ActivityData {
+  dailyActiveUsers: number;
+  weeklyActiveUsers: number;
+  monthlyActiveUsers: number;
+  activityHeatmap: Record<string, number>;
+}
+
+// Cross-chain Analysis Types
+export interface BridgeActivity {
+  volume24h: number;
+  transactions24h: number;
+  uniqueUsers24h: number;
+  averageSize: number;
+  topBridges: Array<{
+    name: string;
+    volume: number;
+    userCount: number;
+  }>;
+}
+
+export interface ProtocolComparison {
+  marketShare: number;
+  volumeRank: number;
+  tvlRank: number;
+  userBaseRank: number;
+  competitors: Array<{
+    name: string;
+    chain: string;
+    metrics: {
       volume: number;
-      frequency: FrequencyData;
-      distribution: ChainDistribution;
+      tvl: number;
+      users: number;
     };
-    comparison: {
-      marketShare: MarketShareData;
-      efficiency: EfficiencyMetrics;
-      adoption: AdoptionCurve;
-    };
+  }>;
+}
+
+export interface CrossChainMetrics {
+  chainDistribution: Record<string, number>;
+  bridgeUtilization: Record<string, number>;
+  crossChainVolume: number;
+  userOverlap: Record<string, number>;
+}
+
+// Aggregated Data Types
+export interface TechnicalAnalysisData {
+  volume: VolumeAnalysis;
+  liquidity: LiquidityData;
+  patterns: PatternData[];
+  predictions: PredictionMetrics;
+  momentum: MomentumData;
+  volatility: VolatilityMetrics;
+  trend: TrendAnalysis;
+}
+
+export interface RiskAssessmentData {
+  security: {
+    score: number;
+    issues: SecurityIssue[];
+    audit: AuditInfo;
   };
+  liquidity: LiquidityMetrics & LockInfo;
+  whales: {
+    holders: WalletInfo[];
+    movements: WhaleMovement[];
+    impact: MarketImpact;
+  };
+}
+
+export interface SocialMetricsData {
+  twitter: SentimentData & EngagementMetrics;
+  discord: MessageStats & GrowthMetrics;
+  telegram: GroupStats & ActivityData;
+}
+
+export interface CrossChainAnalysisData {
+  bridges: BridgeActivity;
+  comparison: ProtocolComparison;
+  metrics: CrossChainMetrics;
+}
+
+export interface AggregatedData {
+  nebulaData: any; // Contract metadata from Thirdweb
+  socialMetrics: SocialMetricsData;
+  technicalAnalysis: TechnicalAnalysisData;
+  riskMetrics: RiskAssessmentData;
+  crossChain: CrossChainAnalysisData;
 } 
