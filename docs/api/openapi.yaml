@@ -1,0 +1,325 @@
+openapi: 3.0.0
+info:
+  title: b/era API
+  description: |
+    API documentation for b/era - A DeFi trading assistant powered by AI that helps you make informed decisions about when to buy (DCA IN) or sell (DCA OUT) tokens on Berachain and analyze NFT collections on Ethereum.
+  version: 1.0.0
+  contact:
+    name: b/era Support
+    url: https://github.com/yourusername/yeet-or-jeet
+
+servers:
+  - url: https://api.bera-ai.xyz/v1
+    description: Production server
+  - url: https://staging-api.bera-ai.xyz/v1
+    description: Staging server
+
+security:
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+
+  schemas:
+    SocialMetricsData:
+      type: object
+      properties:
+        twitter:
+          type: object
+          properties:
+            score: 
+              type: number
+              description: Sentiment score between -1 and 1
+            magnitude:
+              type: number
+              description: Sentiment magnitude
+            keywords:
+              type: array
+              items:
+                type: string
+            timestamp:
+              type: string
+              format: date-time
+            likes:
+              type: integer
+            retweets:
+              type: integer
+            replies:
+              type: integer
+            impressions:
+              type: integer
+            engagementRate:
+              type: number
+        discord:
+          type: object
+          properties:
+            total:
+              type: integer
+            activeChannels:
+              type: integer
+            peakHours:
+              type: array
+              items:
+                type: integer
+            topContributors:
+              type: array
+              items:
+                type: string
+            newMembers:
+              type: integer
+            churnRate:
+              type: number
+            retentionRate:
+              type: number
+            growthRate:
+              type: number
+        telegram:
+          type: object
+          properties:
+            memberCount:
+              type: integer
+            activeMembers:
+              type: integer
+            messageFrequency:
+              type: number
+            topicDistribution:
+              type: object
+              additionalProperties:
+                type: number
+            dailyActiveUsers:
+              type: integer
+            weeklyActiveUsers:
+              type: integer
+            monthlyActiveUsers:
+              type: integer
+            activityHeatmap:
+              type: object
+              additionalProperties:
+                type: integer
+
+    RiskAssessmentData:
+      type: object
+      properties:
+        security:
+          type: object
+          properties:
+            score:
+              type: number
+              description: Security score between 0 and 100
+            issues:
+              type: array
+              items:
+                $ref: '#/components/schemas/SecurityIssue'
+            audit:
+              $ref: '#/components/schemas/AuditInfo'
+        liquidity:
+          $ref: '#/components/schemas/LiquidityMetrics'
+        whales:
+          type: object
+          properties:
+            holders:
+              type: array
+              items:
+                $ref: '#/components/schemas/WalletInfo'
+            movements:
+              type: array
+              items:
+                $ref: '#/components/schemas/WhaleMovement'
+            impact:
+              $ref: '#/components/schemas/MarketImpact'
+
+    SecurityIssue:
+      type: object
+      properties:
+        severity:
+          type: string
+          enum: [low, medium, high]
+        type:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        recommendation:
+          type: string
+
+    AuditInfo:
+      type: object
+      properties:
+        score:
+          type: number
+        issues:
+          type: array
+          items:
+            type: string
+        lastAudit:
+          type: string
+          format: date-time
+        auditor:
+          type: string
+
+    LiquidityMetrics:
+      type: object
+      properties:
+        totalLiquidity:
+          type: number
+        liquidityDepth:
+          type: number
+        concentrationRisk:
+          type: number
+        withdrawalRisk:
+          type: number
+
+    WalletInfo:
+      type: object
+      properties:
+        address:
+          type: string
+        balance:
+          type: number
+        percentage:
+          type: number
+        type:
+          type: string
+          enum: [whale, institution, retail]
+
+    WhaleMovement:
+      type: object
+      properties:
+        address:
+          type: string
+        type:
+          type: string
+          enum: [buy, sell]
+        amount:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+        priceImpact:
+          type: number
+
+    MarketImpact:
+      type: object
+      properties:
+        priceImpact:
+          type: number
+        volumeImpact:
+          type: number
+        liquidityImpact:
+          type: number
+        severity:
+          type: string
+          enum: [low, medium, high]
+
+paths:
+  /analyze/social/{contractAddress}:
+    get:
+      summary: Get social metrics analysis
+      description: Retrieve comprehensive social metrics analysis for a contract
+      parameters:
+        - name: contractAddress
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialMetricsData'
+        '400':
+          description: Invalid contract address
+        '401':
+          description: Unauthorized
+        '429':
+          description: Too many requests
+        '500':
+          description: Internal server error
+
+  /analyze/risk/{contractAddress}:
+    get:
+      summary: Get risk assessment
+      description: Retrieve comprehensive risk assessment for a contract
+      parameters:
+        - name: contractAddress
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskAssessmentData'
+        '400':
+          description: Invalid contract address
+        '401':
+          description: Unauthorized
+        '429':
+          description: Too many requests
+        '500':
+          description: Internal server error
+
+  /analyze/historical/{contractAddress}:
+    get:
+      summary: Get historical analysis
+      description: Retrieve historical analysis data for a contract
+      parameters:
+        - name: contractAddress
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: startTime
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: endTime
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: metrics
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [social, risk, technical]
+      responses:
+        '200':
+          description: Successful retrieval
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  social:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SocialMetricsData'
+                  risk:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RiskAssessmentData'
+        '400':
+          description: Invalid parameters
+        '401':
+          description: Unauthorized
+        '429':
+          description: Too many requests
+        '500':
+          description: Internal server error 
