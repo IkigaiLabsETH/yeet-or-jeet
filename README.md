@@ -220,6 +220,51 @@ A next-generation DeFi and NFT analytics platform that combines institutional-gr
   - Bend (Lending Protocol)
   - WBERA (Native Wrapper)
 
+#### 4. Nebula Integration
+- **Blockchain AI Engine**
+  - Real-time onchain data analysis
+    - Cross-chain data monitoring
+    - Smart contract interaction
+    - Transaction pattern recognition
+  - Natural language processing
+    - Trading instruction interpretation
+    - Market analysis queries
+    - Portfolio recommendations
+  - Autonomous trading capabilities
+    - Market condition monitoring
+    - Trade execution optimization
+    - Risk management automation
+
+- **Advanced Analytics**
+  - Smart contract analysis
+    - Code quality assessment
+    - Vulnerability detection
+    - Gas optimization suggestions
+  - Portfolio intelligence
+    - Position optimization
+    - Risk exposure analysis
+    - Performance forecasting
+  - Market sentiment analysis
+    - Social signal processing
+    - Community engagement metrics
+    - Developer activity tracking
+
+- **API Integration**
+```typescript
+POST https://nebula-api.thirdweb.com/chat
+```
+Request format:
+```typescript
+interface NebulaRequest {
+  message: string;
+  stream: boolean;
+  options?: {
+    temperature?: number;
+    maxTokens?: number;
+  }
+}
+```
+
 ### API Endpoints
 
 #### 1. Price API
@@ -307,6 +352,7 @@ pnpm install
 NEXT_PUBLIC_OOGABOOGA_API_KEY=your_oogabooga_api_key_here
 NEXT_PUBLIC_RESERVOIR_API_KEY=your_reservoir_api_key_here
 CIELO_API_KEY=your_cielo_api_key_here  # Required for wallet tracking
+THIRDWEB_SECRET_KEY=your_nebula_api_key_here  # Required for AI features
 ```
 
 4. Start development server
