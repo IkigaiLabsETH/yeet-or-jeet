@@ -1,25 +1,26 @@
-import { ThirdwebSDK } from "@thirdweb-dev/sdk";
-import { AggregatedData } from "../types";
-import { SocialMetricsService } from "./SocialMetricsService";
-import { TechnicalAnalysisService } from "./TechnicalAnalysisService";
-import { RiskAssessmentService } from "./RiskAssessmentService";
-import { CrossChainAnalysisService } from "./CrossChainAnalysisService";
+import { SmartContract } from '@thirdweb-dev/react';
+import { BaseContract } from 'ethers';
+import { AggregatedData } from "@/lib/analysis/types";
+import { SocialMetricsService } from "@/lib/analysis/services/SocialMetricsService";
+import { TechnicalAnalysisService } from "@/lib/analysis/services/TechnicalAnalysisService";
+import { RiskAssessmentService } from "@/lib/analysis/services/RiskAssessmentService";
+import { CrossChainAnalysisService } from "@/lib/analysis/services/CrossChainAnalysisService";
 
 export class DataAggregationService {
-  private sdk: ThirdwebSDK;
+  private contract: SmartContract<BaseContract>;
   private socialMetrics: SocialMetricsService;
   private technicalAnalysis: TechnicalAnalysisService;
   private riskAssessment: RiskAssessmentService;
   private crossChainAnalysis: CrossChainAnalysisService;
 
   constructor(
-    sdk: ThirdwebSDK,
+    contract: SmartContract<BaseContract>,
     socialMetrics: SocialMetricsService,
     technicalAnalysis: TechnicalAnalysisService,
     riskAssessment: RiskAssessmentService,
     crossChainAnalysis: CrossChainAnalysisService
   ) {
-    this.sdk = sdk;
+    this.contract = contract;
     this.socialMetrics = socialMetrics;
     this.technicalAnalysis = technicalAnalysis;
     this.riskAssessment = riskAssessment;
@@ -28,9 +29,8 @@ export class DataAggregationService {
 
   async aggregateProtocolData(contractAddress: string): Promise<AggregatedData> {
     try {
-      // Fetch Nebula data
-      const contract = await this.sdk.getContract(contractAddress);
-      const nebulaData = await contract.metadata.get();
+      // Fetch contract metadata using V5 contract
+      const metadata = await this.contract.metadata.get();
 
       // Fetch data from all services in parallel
       const [
@@ -47,7 +47,7 @@ export class DataAggregationService {
 
       // Combine all data
       return {
-        nebulaData,
+        nebulaData: metadata,
         socialMetrics: socialMetricsData,
         technicalAnalysis: technicalAnalysisData,
         riskMetrics: riskMetricsData,
@@ -93,15 +93,31 @@ export class DataAggregationService {
   ): Promise<() => void> {
     // Set up WebSocket or polling connections for real-time updates
     const cleanup = await Promise.all([
-      this.socialMetrics.subscribeToUpdates(contractAddress, callback),
-      this.technicalAnalysis.subscribeToUpdates(contractAddress, callback),
-      this.riskAssessment.subscribeToUpdates(contractAddress, callback),
-      this.crossChainAnalysis.subscribeToUpdates(contractAddress, callback)
+      this.socialMetrics.subscribeToUpdates(contractAddress, (data) => {
+        if (data.twitter || data.discord || data.telegram) {
+          callback({ socialMetrics: data as AggregatedData['socialMetrics'] });
+        }
+      }),
+      this.technicalAnalysis.subscribeToUpdates(contractAddress, (data) => {
+        if (data.volume || data.liquidity || data.patterns || data.predictions) {
+          callback({ technicalAnalysis: data as AggregatedData['technicalAnalysis'] });
+        }
+      }),
+      this.riskAssessment.subscribeToUpdates(contractAddress, (data) => {
+        if (data.security || data.liquidity || data.whales) {
+          callback({ riskMetrics: data as AggregatedData['riskMetrics'] });
+        }
+      }),
+      this.crossChainAnalysis.subscribeToUpdates(contractAddress, (data) => {
+        if (data.bridges || data.comparison) {
+          callback({ crossChain: data as AggregatedData['crossChain'] });
+        }
+      })
     ]);
 
     // Return cleanup function
     return () => {
-      cleanup.forEach(cleanupFn => cleanupFn());
+      cleanup.forEach((cleanupFn: () => void) => cleanupFn());
     };
   }
 } 

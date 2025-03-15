@@ -61,6 +61,32 @@ export class RiskAssessmentService {
     }
   }
 
+  async getHistoricalRisk(
+    contractAddress: string,
+    startTime: Date,
+    endTime: Date
+  ): Promise<RiskAssessmentData[]> {
+    // Implement historical risk assessment
+    return [];
+  }
+
+  async subscribeToUpdates(
+    contractAddress: string,
+    callback: (data: Partial<RiskAssessmentData>) => void
+  ): Promise<() => void> {
+    // Set up real-time risk assessment updates
+    const interval = setInterval(async () => {
+      try {
+        const assessment = await this.evaluate(contractAddress);
+        callback(assessment);
+      } catch (error) {
+        console.error("Error updating risk assessment:", error);
+      }
+    }, 5 * 60 * 1000); // Update every 5 minutes
+
+    return () => clearInterval(interval);
+  }
+
   private async analyzeSecurity(
     contractAddress: string
   ): Promise<{
@@ -197,31 +223,5 @@ export class RiskAssessmentService {
   private calculateAuditScore(auditInfo: AuditInfo): number {
     // Calculate score based on audit information
     return auditInfo.score;
-  }
-
-  async getHistoricalRisk(
-    contractAddress: string,
-    startTime: Date,
-    endTime: Date
-  ): Promise<RiskAssessmentData[]> {
-    // Implement historical risk assessment
-    return [];
-  }
-
-  async subscribeToUpdates(
-    contractAddress: string,
-    callback: (data: Partial<RiskAssessmentData>) => void
-  ): Promise<() => void> {
-    // Set up real-time risk assessment updates
-    const interval = setInterval(async () => {
-      try {
-        const assessment = await this.evaluate(contractAddress);
-        callback(assessment);
-      } catch (error) {
-        console.error("Error updating risk assessment:", error);
-      }
-    }, 5 * 60 * 1000); // Update every 5 minutes
-
-    return () => clearInterval(interval);
   }
 } 

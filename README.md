@@ -2,6 +2,65 @@
 
 A next-generation DeFi and NFT analytics platform that combines institutional-grade market intelligence with AI-powered trading assistance for Berachain and Ethereum.
 
+## Why b/era?
+
+b/era addresses critical gaps in the DeFi and NFT analytics landscape:
+
+1. **Fragmented Data**: Most platforms offer siloed views of either DeFi or NFT data. b/era unifies these insights through our comprehensive DataAggregationService.
+
+2. **Delayed Analysis**: Traditional platforms rely on historical data. b/era provides real-time analysis through WebSocket connections and intelligent caching.
+
+3. **Limited Context**: Existing tools often miss crucial social and cross-chain signals. Our multi-service architecture captures the complete market picture.
+
+4. **Poor Risk Assessment**: Current platforms lack sophisticated risk metrics. b/era's RiskAssessmentService provides institutional-grade risk analysis.
+
+## Architecture
+
+### Core Services
+
+1. **DataAggregationService**
+   - **Why**: Central orchestrator for all data collection and analysis
+   - **How**: 
+     - Manages parallel data fetching from all services
+     - Implements smart caching (30s for high-frequency data)
+     - Provides real-time updates via WebSocket/polling
+     - Handles historical data aggregation
+
+2. **SocialMetricsService**
+   - **Why**: Social signals often precede market movements
+   - **How**:
+     - Twitter sentiment analysis and engagement tracking
+     - Discord community growth and activity metrics
+     - Telegram group dynamics and trend detection
+     - Real-time social feed monitoring
+
+3. **TechnicalAnalysisService**
+   - **Why**: Professional-grade market analysis
+   - **How**:
+     - Volume and liquidity analysis
+     - Pattern recognition
+     - Price prediction models
+     - Momentum indicators
+     - Volatility metrics
+
+4. **RiskAssessmentService**
+   - **Why**: Institutional-grade risk management
+   - **How**:
+     - Security audit analysis
+     - Liquidity risk assessment
+     - Whale movement tracking
+     - Market manipulation detection
+     - Smart contract risk scoring
+
+5. **CrossChainAnalysisService**
+   - **Why**: Comprehensive cross-chain market intelligence
+   - **How**:
+     - Bridge activity monitoring
+     - Protocol comparison metrics
+     - Market share analysis
+     - Efficiency metrics tracking
+     - Adoption curve analysis
+
 ## Features
 
 ### Top Tokens Grid
@@ -333,52 +392,123 @@ POST https://mainnet.api.oogabooga.io/v1/approve
 - Portfolio tracking
 - Risk assessment
 
-## Setup
+## Setup and Configuration
 
-1. Clone the repository
+### Prerequisites
+
+- Node.js 18+
+- pnpm 8+
+- Redis (for caching)
+- MongoDB (for historical data)
+
+### Installation
+
+1. **Clone the Repository**
 ```bash
 git clone https://github.com/yourusername/b-era.git
 cd b-era
 ```
 
-2. Install dependencies
+2. **Install Dependencies**
 ```bash
 pnpm install
 ```
 
-3. Configure environment
+3. **Configure Environment**
 ```bash
 # .env.local
+
+# Core API Keys
 NEXT_PUBLIC_OOGABOOGA_API_KEY=your_oogabooga_api_key_here
 NEXT_PUBLIC_RESERVOIR_API_KEY=your_reservoir_api_key_here
-CIELO_API_KEY=your_cielo_api_key_here  # Required for wallet tracking
-THIRDWEB_SECRET_KEY=your_nebula_api_key_here  # Required for AI features
+CIELO_API_KEY=your_cielo_api_key_here
+THIRDWEB_SECRET_KEY=your_nebula_api_key_here
+
+# Social Media APIs
+NEXT_PUBLIC_TWITTER_API_KEY=your_twitter_api_key
+NEXT_PUBLIC_DISCORD_BOT_TOKEN=your_discord_bot_token
+NEXT_PUBLIC_TELEGRAM_API_KEY=your_telegram_api_key
+
+# Market Data APIs
+NEXT_PUBLIC_GECKOTERMINAL_API_KEY=your_geckoterminal_key
+NEXT_PUBLIC_DEXSCREENER_API_KEY=your_dexscreener_key
+
+# Machine Learning Configuration
+NEXT_PUBLIC_ENABLE_ML_PIPELINE=true
+NEXT_PUBLIC_ML_MODEL_ENDPOINT=your_model_endpoint
+
+# Infrastructure
+NEXT_PUBLIC_REDIS_URL=redis://localhost:6379
+NEXT_PUBLIC_MONGODB_URI=mongodb://localhost:27017/bera
 ```
 
-4. Start development server
+4. **Start Required Services**
+```bash
+# Start Redis
+redis-server
+
+# Start MongoDB
+mongod
+```
+
+5. **Run Development Server**
 ```bash
 pnpm dev
 ```
 
-## API Keys
-- OogaBooga API: Contact @beranoulli or @whoiskevinn on Telegram
-- Cielo API: Visit https://cielo.finance
-- Reservoir API: Required for NFT analytics
+### Service Configuration
 
-## Data Flow Architecture
+1. **DataAggregationService**
+   - Configure cache TTL in `src/config/cache.ts`
+   - Adjust polling intervals in `src/config/polling.ts`
+   - Set up WebSocket connections in `src/config/websocket.ts`
 
-```
-Primary Data Flow:
-Pool Data (real-time) -> Token Cache (30s) -> Token Enrichment -> Filtering -> Sorting -> Final List
+2. **SocialMetricsService**
+   - Configure API rate limits in `src/config/rateLimit.ts`
+   - Set up sentiment analysis models in `src/config/ml.ts`
+   - Define social metrics thresholds in `src/config/metrics.ts`
 
-Fallback Mechanisms:
-1. GeckoTerminal Pools API (most recent prices/volumes)
-2. GeckoTerminal Token API (token-specific data)
-3. GeckoTerminal Info API (metadata enrichment)
-4. Cached data (if within 30 seconds)
-5. DexScreener API (fallback)
-6. Priority token list (guaranteed inclusion)
-```
+3. **TechnicalAnalysisService**
+   - Configure technical indicators in `src/config/indicators.ts`
+   - Set up price prediction models in `src/config/prediction.ts`
+   - Define market patterns in `src/config/patterns.ts`
+
+4. **RiskAssessmentService**
+   - Configure risk thresholds in `src/config/risk.ts`
+   - Set up security scanning in `src/config/security.ts`
+   - Define whale tracking parameters in `src/config/whales.ts`
+
+5. **CrossChainAnalysisService**
+   - Configure supported chains in `src/config/chains.ts`
+   - Set up bridge monitoring in `src/config/bridges.ts`
+   - Define cross-chain metrics in `src/config/crosschain.ts`
+
+### API Keys
+
+- **OogaBooga API**: Contact @beranoulli or @whoiskevinn on Telegram
+- **Cielo API**: Visit https://cielo.finance
+- **Reservoir API**: Visit https://reservoir.tools
+- **Thirdweb API**: Visit https://thirdweb.com/dashboard
+
+### Development Guidelines
+
+1. **Code Style**
+   - Follow TypeScript best practices
+   - Use ES6+ features
+   - Implement proper error handling
+   - Write comprehensive tests
+
+2. **Performance**
+   - Optimize database queries
+   - Implement proper caching
+   - Use WebSocket where appropriate
+   - Minimize API calls
+
+3. **Security**
+   - Never commit API keys
+   - Implement rate limiting
+   - Validate all inputs
+   - Follow security best practices
 
 ## Disclaimer
 

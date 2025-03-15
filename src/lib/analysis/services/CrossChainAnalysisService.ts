@@ -52,6 +52,32 @@ export class CrossChainAnalysisService {
     }
   }
 
+  async getHistoricalData(
+    contractAddress: string,
+    startTime: Date,
+    endTime: Date
+  ): Promise<CrossChainAnalysisData[]> {
+    // Implement historical cross-chain analysis
+    return [];
+  }
+
+  async subscribeToUpdates(
+    contractAddress: string,
+    callback: (data: Partial<CrossChainAnalysisData>) => void
+  ): Promise<() => void> {
+    // Set up real-time cross-chain analysis updates
+    const interval = setInterval(async () => {
+      try {
+        const analysis = await this.analyze(contractAddress);
+        callback(analysis);
+      } catch (error) {
+        console.error("Error updating cross-chain analysis:", error);
+      }
+    }, 15 * 60 * 1000); // Update every 15 minutes
+
+    return () => clearInterval(interval);
+  }
+
   private async analyzeBridgeActivity(
     contractAddress: string
   ): Promise<{
@@ -132,33 +158,6 @@ export class CrossChainAnalysisService {
     };
   }
 
-  async getHistoricalData(
-    contractAddress: string,
-    startTime: Date,
-    endTime: Date
-  ): Promise<CrossChainAnalysisData[]> {
-    // Implement historical cross-chain analysis
-    return [];
-  }
-
-  async subscribeToUpdates(
-    contractAddress: string,
-    callback: (data: Partial<CrossChainAnalysisData>) => void
-  ): Promise<() => void> {
-    // Set up real-time cross-chain analysis updates
-    const interval = setInterval(async () => {
-      try {
-        const analysis = await this.analyze(contractAddress);
-        callback(analysis);
-      } catch (error) {
-        console.error("Error updating cross-chain analysis:", error);
-      }
-    }, 15 * 60 * 1000); // Update every 15 minutes
-
-    return () => clearInterval(interval);
-  }
-
-  // Helper methods for cross-chain analysis
   private calculateGrowthRate(
     currentValue: number,
     previousValue: number,
@@ -179,6 +178,12 @@ export class CrossChainAnalysisService {
     return totalMetrics > 0 ? (protocolMetrics / totalMetrics) * 100 : 0;
   }
 
+  private calculateAverage(values: number[]): number {
+    return values.length > 0
+      ? values.reduce((sum, value) => sum + value, 0) / values.length
+      : 0;
+  }
+
   private predictTrend(
     historicalData: number[],
     windowSize: number = 30
@@ -197,11 +202,5 @@ export class CrossChainAnalysisService {
     if (changePct > 5) return "increasing";
     if (changePct < -5) return "decreasing";
     return "stable";
-  }
-
-  private calculateAverage(values: number[]): number {
-    return values.length > 0
-      ? values.reduce((sum, value) => sum + value, 0) / values.length
-      : 0;
   }
 } 

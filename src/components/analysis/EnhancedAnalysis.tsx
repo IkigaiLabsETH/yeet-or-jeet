@@ -5,14 +5,14 @@ import { SocialMetricsService } from '@/lib/analysis/services/SocialMetricsServi
 import { TechnicalAnalysisService } from '@/lib/analysis/services/TechnicalAnalysisService';
 import { RiskAssessmentService } from '@/lib/analysis/services/RiskAssessmentService';
 import { CrossChainAnalysisService } from '@/lib/analysis/services/CrossChainAnalysisService';
-import { ThirdwebSDK } from '@thirdweb-dev/sdk';
+import { SmartContract } from '@thirdweb-dev/react';
 
 interface EnhancedAnalysisProps {
   contractAddress: string;
-  sdk: ThirdwebSDK;
+  contract: SmartContract;
 }
 
-export function EnhancedAnalysis({ contractAddress, sdk }: EnhancedAnalysisProps) {
+export function EnhancedAnalysis({ contractAddress, contract }: EnhancedAnalysisProps) {
   const [analysisData, setAnalysisData] = useState<AggregatedData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export function EnhancedAnalysis({ contractAddress, sdk }: EnhancedAnalysisProps
         );
 
         const dataAggregator = new DataAggregationService(
-          sdk,
+          contract,
           socialMetrics,
           technicalAnalysis,
           riskAssessment,
@@ -76,7 +76,7 @@ export function EnhancedAnalysis({ contractAddress, sdk }: EnhancedAnalysisProps
     };
 
     fetchData();
-  }, [contractAddress, sdk]);
+  }, [contractAddress, contract]);
 
   if (loading) {
     return (

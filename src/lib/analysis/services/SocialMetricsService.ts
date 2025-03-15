@@ -8,18 +8,9 @@ import {
 } from "../types";
 
 interface SocialMetricsData {
-  twitter: {
-    sentiment: SentimentData;
-    engagement: EngagementMetrics;
-  };
-  discord: {
-    messages: MessageStats;
-    growth: GrowthMetrics;
-  };
-  telegram: {
-    group: GroupStats;
-    activity: ActivityData;
-  };
+  twitter: SentimentData & EngagementMetrics;
+  discord: MessageStats & GrowthMetrics;
+  telegram: GroupStats & ActivityData;
 }
 
 export class SocialMetricsService {
@@ -47,9 +38,18 @@ export class SocialMetricsService {
       ]);
 
       return {
-        twitter: twitterData,
-        discord: discordData,
-        telegram: telegramData
+        twitter: {
+          ...twitterData.sentiment,
+          ...twitterData.engagement
+        },
+        discord: {
+          ...discordData.messages,
+          ...discordData.growth
+        },
+        telegram: {
+          ...telegramData.group,
+          ...telegramData.activity
+        }
       };
     } catch (error) {
       console.error("Error fetching social metrics:", error);
@@ -57,11 +57,36 @@ export class SocialMetricsService {
     }
   }
 
+  async getHistoricalMetrics(
+    contractAddress: string,
+    startTime: Date,
+    endTime: Date
+  ): Promise<SocialMetricsData[]> {
+    // Implement historical data fetching for social metrics
+    return [];
+  }
+
+  async subscribeToUpdates(
+    contractAddress: string,
+    callback: (data: Partial<SocialMetricsData>) => void
+  ): Promise<() => void> {
+    // Set up WebSocket connections or polling for real-time social media updates
+    const interval = setInterval(async () => {
+      try {
+        const metrics = await this.fetchMetrics(contractAddress);
+        callback({ twitter: metrics.twitter });
+      } catch (error) {
+        console.error("Error updating social metrics:", error);
+      }
+    }, 5 * 60 * 1000); // Update every 5 minutes
+
+    return () => clearInterval(interval);
+  }
+
   private async fetchTwitterMetrics(
     contractAddress: string
   ): Promise<{ sentiment: SentimentData; engagement: EngagementMetrics }> {
     // Implement Twitter API integration
-    // This would use the Twitter API v2 endpoints
     return {
       sentiment: {
         score: 0,
@@ -116,42 +141,6 @@ export class SocialMetricsService {
         monthlyActiveUsers: 0,
         activityHeatmap: {}
       }
-    };
-  }
-
-  async getHistoricalMetrics(
-    contractAddress: string,
-    startTime: Date,
-    endTime: Date
-  ): Promise<SocialMetricsData[]> {
-    // Implement historical data fetching for social metrics
-    return [];
-  }
-
-  async subscribeToUpdates(
-    contractAddress: string,
-    callback: (data: Partial<SocialMetricsData>) => void
-  ): Promise<() => void> {
-    // Set up WebSocket connections or polling for real-time social media updates
-    const intervals: NodeJS.Timeout[] = [];
-
-    // Example: Poll Twitter every 5 minutes
-    const twitterInterval = setInterval(async () => {
-      try {
-        const twitterData = await this.fetchTwitterMetrics(contractAddress);
-        callback({ twitter: twitterData });
-      } catch (error) {
-        console.error("Error polling Twitter metrics:", error);
-      }
-    }, 5 * 60 * 1000);
-
-    intervals.push(twitterInterval);
-
-    // Similar implementations for Discord and Telegram
-
-    // Return cleanup function
-    return () => {
-      intervals.forEach(interval => clearInterval(interval));
     };
   }
 
